@@ -44,7 +44,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: '巴柔之家数据库合集 · 顶尖教练系统教程',
+      title: '巴柔之家合集 · 顶尖教练系统教程',
       path: '/pages/index/index'
     };
   },
