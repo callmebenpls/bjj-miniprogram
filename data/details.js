@@ -51535,7 +51535,7 @@ const details = {
     "id": "the-fight-dietician-by-craig-jones-and-jordan-sullivan",
     "title": "The Fight Dietician",
     "titleCn": "格斗营养学",
-    "instructor": "Craig Jones and Jordan Sullivan",
+    "instructor": "Craig Jones",
     "cat": "过腿",
     "image": "https://cdn.shopify.com/s/files/1/1800/2299/products/JordanSullivan_CraigJonesPresents-TheFightDietician_CoverFRONT.jpg?v=1762463511",
     "desc": "想要在柔术对抗中保持巅峰体能，科学的营养补给至关重要。在这套课程中，Jordan Sullivan 将携手 Craig Jones，为你深度解析碳水、蛋白质与脂肪的精准配比，并传授如何通过优化能量可用性与微量元素摄入，最大化你的训练与竞技表现。你还将掌握职业选手级别的降重策略，从纤维摄入到水盐平衡的精细化管理，助你科学增能并高效备战，实现体能与技术的双重突破。",

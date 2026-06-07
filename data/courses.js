@@ -1325,7 +1325,7 @@ const courses = [
     "id": "the-fight-dietician-by-craig-jones-and-jordan-sullivan",
     "title": "The Fight Dietician",
     "titleCn": "格斗营养学",
-    "instructor": "Craig Jones and Jordan Sullivan",
+    "instructor": "Craig Jones",
     "cat": "过腿",
     "chapters": 14,
     "volumes": 3,

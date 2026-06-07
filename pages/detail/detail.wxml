@@ -38,8 +38,7 @@
   
   <view wx:for="{{course.parts}}" wx:for-item="part" wx:key="index" class="part-card">
     <view class="part-header">
-      <text class="part-badge">{{'P' + (index + 1)}}</text>
-      <text class="part-title">{{part.en}}</text>
+      <text class="part-badge">{{part.en}}</text>
       <text wx:if="{{part.cn}}" class="part-title-cn">· {{part.cn}}</text>
     </view>
     <!-- Table header -->

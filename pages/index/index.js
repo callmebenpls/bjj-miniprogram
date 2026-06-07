@@ -44,7 +44,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: 'BJJ 课程合集 · 顶尖教练系统教程',
+      title: '巴西柔术数据库合集 · 顶尖教练系统教程',
       path: '/pages/index/index'
     };
   },
