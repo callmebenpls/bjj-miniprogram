@@ -1,4 +1,4 @@
-const { details } = require('../../data/details');
+const { details } = require('../details.js');
 
 Page({
   data: {
@@ -21,7 +21,7 @@ Page({
     const c = this.data.course || {};
     return {
       title: c.titleCn || c.title || '巴柔之家',
-      path: '/pages/detail/detail?id=' + (c.id || ''),
+      path: '/pkgDetail/detail/detail?id=' + (c.id || ''),
       imageUrl: c.image || ''
     };
   },

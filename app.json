@@ -1,7 +1,14 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/detail/detail"
+    "pages/index/index"
+  ],
+  "subPackages": [
+    {
+      "root": "pkgDetail",
+      "pages": [
+        "detail/detail"
+      ]
+    }
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",

@@ -100,7 +100,7 @@ Page({
     const course = allCourses.find(c => c.id === id);
     if (!course) return;
     wx.navigateTo({
-      url: '/pages/detail/detail?id=' + id
+      url: '/pkgDetail/detail/detail?id=' + id
     });
   }
 });
