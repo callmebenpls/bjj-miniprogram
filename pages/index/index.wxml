@@ -1,0 +1,51 @@
+<!-- ===== STATUS BAR PLACEHOLDER ===== -->
+<view class="status-bar">BJJ 课程</view>
+
+<scroll-view class="page" scroll-y="true" enhanced show-scrollbar="{{false}}" lower-threshold="50">
+
+  <!-- ===== SEARCH ===== -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="搜索课程或教练..." bindinput="onSearch" />
+  </view>
+
+  <!-- ===== CATEGORY CHIPS ===== -->
+  <view class="section-label">分类</view>
+  <scroll-view class="chip-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
+    <view class="chip-row">
+      <view class="chip {{curCat === 'all' ? 'active' : ''}}" data-cat="all" bindtap="setCat">全部</view>
+      <view wx:for="{{categories}}" wx:key="index" class="chip {{curCat === item ? 'active' : ''}}" data-cat="{{item}}" bindtap="setCat">{{item}}</view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== COACH AVATARS ===== -->
+  <view class="section-label">教练</view>
+  <scroll-view class="coach-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
+    <view class="coach-item {{curCoach === '' ? 'active' : ''}}" data-name="" bindtap="setCoach">
+      <view class="coach-avatar all-icon">●</view>
+      <view class="coach-name-sm">全部</view>
+      <view class="coach-count">&nbsp;</view>
+    </view>
+    <view wx:for="{{coachList}}" wx:key="index" class="coach-item {{curCoach === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="setCoach">
+      <view class="coach-avatar">
+        <image wx:if="{{item.avatar}}" class="coach-avatar-img" src="{{item.avatar}}" mode="aspectFill" />
+        <text wx:else>{{item.initial}}</text>
+      </view>
+      <view class="coach-name-sm">{{item.name}}</view>
+      <view class="coach-count">{{item.count}}门</view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== COURSE LIST ===== -->
+  <view class="section-label">课程</view>
+  <view wx:if="{{filteredCourses.length === 0}}" class="empty-state">没有相关课程</view>
+  <view wx:for="{{filteredCourses}}" wx:key="id" class="course-card" data-id="{{item.id}}" bindtap="openDetail">
+    <image wx:if="{{item.image}}" class="course-thumb" src="{{item.image}}" mode="aspectFill" />
+    <view wx:else class="course-thumb" style="background:#f0f0f0;"></view>
+    <view class="course-info">
+      <view class="course-title">{{item.titleCn || item.title}}</view>
+      <view class="course-instructor">{{item.instructor}}</view>
+      <view class="course-meta">{{item.cat}} · {{item.volumes || '0'}} 卷</view>
+    </view>
+  </view>
+
+</scroll-view>

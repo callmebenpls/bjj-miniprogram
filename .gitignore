@@ -1,0 +1,10 @@
+# WeChat DevTools local/private settings
+project.private.config.json
+
+# Local data backups
+.backup-*/
+
+# OS / editor cruft
+.DS_Store
+*.log
+node_modules/

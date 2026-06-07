@@ -1,0 +1,62 @@
+<view class="back-bar" bindtap="goBack">← 返回</view>
+
+<!-- Top accent bar -->
+<view class="top-accent"></view>
+
+<!-- ===== HEADER ===== -->
+<view class="article-header">
+  <view class="header-label">BJJ FANATICS</view>
+  <view class="header-title">{{course.titleCn || course.title}}</view>
+  <view class="header-subtitle">{{course.title}}</view>
+  <view class="header-instructor">
+    <text class="header-label-accent">讲师</text> {{course.instructor}}
+  </view>
+</view>
+
+<!-- ===== COVER IMAGE ===== -->
+<view wx:if="{{course.image}}" class="cover-wrap">
+  <image src="{{course.image}}" mode="widthFix" class="cover-img" />
+</view>
+
+<!-- ===== DESCRIPTION ===== -->
+<view class="section-wrap">
+  <view class="section-title-bar">课程介绍</view>
+  <view class="desc-text">{{course.desc}}</view>
+</view>
+
+<!-- ===== DIVIDER ===== -->
+<view class="divider-wrap">
+  <view class="divider-dash"></view>
+  <view class="divider-star">✦ ✦ ✦</view>
+</view>
+
+<!-- ===== CHAPTERS ===== -->
+<view class="section-wrap">
+  <view class="section-title-bar">章节列表</view>
+  
+  <view wx:for="{{course.parts}}" wx:for-item="part" wx:key="index" class="part-card">
+    <view class="part-header">
+      <text class="part-badge">{{'P' + (index + 1)}}</text>
+      <text class="part-title">{{part.en}}</text>
+      <text wx:if="{{part.cn}}" class="part-title-cn">· {{part.cn}}</text>
+    </view>
+    <!-- Table header -->
+    <view class="ch-th-row">
+      <text class="ch-th" style="width:42%;">节目标题</text>
+      <text class="ch-th" style="width:33%;">中文</text>
+      <text class="ch-th" style="width:25%;">时长</text>
+    </view>
+    <view wx:for="{{part.ch}}" wx:for-item="ch" wx:key="index" class="ch-row">
+      <text class="ch-td" style="width:42%;">{{ch[0]}}</text>
+      <text class="ch-td-cn" style="width:33%;">{{ch[1]}}</text>
+      <text class="ch-td-cn" style="width:25%;">{{ch[2]}}</text>
+    </view>
+  </view>
+  <view class="part-summary">共 {{course.parts.length}} 部分</view>
+</view>
+
+<!-- ===== FOOTER ===== -->
+<view class="footer-line">2026</view>
+
+<!-- Bottom accent bar -->
+<view class="bottom-accent"></view>
