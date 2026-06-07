@@ -17,7 +17,12 @@
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "folder", "value": ".backup-20260607" },
+      { "type": "file", "value": "README.md" },
+      { "type": "file", "value": ".gitignore" },
+      { "type": "file", "value": "project.private.config.json" }
+    ],
     "include": []
   },
   "appid": "wxe2cb602350b9413c",
