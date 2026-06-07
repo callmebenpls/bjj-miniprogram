@@ -21,9 +21,9 @@
   <view class="section-label">教练</view>
   <scroll-view class="coach-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
     <view class="coach-item {{curCoach === '' ? 'active' : ''}}" data-name="" bindtap="setCoach">
-      <view class="coach-avatar all-icon">●</view>
+      <view class="coach-avatar all-icon">全</view>
       <view class="coach-name-sm">全部</view>
-      <view class="coach-count">&nbsp;</view>
+      <view class="coach-count">{{allCount}}门</view>
     </view>
     <view wx:for="{{coachList}}" wx:key="index" class="coach-item {{curCoach === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="setCoach">
       <view class="coach-avatar">

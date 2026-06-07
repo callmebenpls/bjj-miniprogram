@@ -14,5 +14,25 @@ Page({
 
   goBack() {
     wx.navigateBack();
+  },
+
+  // Share a specific course to a friend / group chat
+  onShareAppMessage() {
+    const c = this.data.course || {};
+    return {
+      title: c.titleCn || c.title || 'BJJ 课程',
+      path: '/pages/detail/detail?id=' + (c.id || ''),
+      imageUrl: c.image || ''
+    };
+  },
+
+  // Share to Moments / 朋友圈 (Android)
+  onShareTimeline() {
+    const c = this.data.course || {};
+    return {
+      title: c.titleCn || c.title || 'BJJ 课程',
+      query: 'id=' + (c.id || ''),
+      imageUrl: c.image || ''
+    };
   }
 });

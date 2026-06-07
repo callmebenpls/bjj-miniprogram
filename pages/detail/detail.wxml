@@ -1,11 +1,13 @@
-<view class="back-bar" bindtap="goBack">← 返回</view>
+<view class="top-bar">
+  <view class="back-bar" bindtap="goBack">← 返回</view>
+  <button class="share-btn" open-type="share" hover-class="none">分享 ↗</button>
+</view>
 
 <!-- Top accent bar -->
 <view class="top-accent"></view>
 
 <!-- ===== HEADER ===== -->
 <view class="article-header">
-  <view class="header-label">BJJ FANATICS</view>
   <view class="header-title">{{course.titleCn || course.title}}</view>
   <view class="header-subtitle">{{course.title}}</view>
   <view class="header-instructor">

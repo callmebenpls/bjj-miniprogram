@@ -36,9 +36,17 @@ Page({
     categories,
     coachList,
     allCourses,
+    allCount: allCourses.length,
     filteredCourses: allCourses,
     curCat: 'all',
     curCoach: ''
+  },
+
+  onShareAppMessage() {
+    return {
+      title: 'BJJ 课程合集 · 顶尖教练系统教程',
+      path: '/pages/index/index'
+    };
   },
 
   onLoad() {
