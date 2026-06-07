@@ -1,5 +1,5 @@
 <!-- ===== STATUS BAR PLACEHOLDER ===== -->
-<view class="status-bar">巴西柔术数据库</view>
+<view class="status-bar">巴柔之家数据库</view>
 
 <scroll-view class="page" scroll-y="true" enhanced show-scrollbar="{{false}}" lower-threshold="50">
 

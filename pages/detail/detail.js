@@ -20,7 +20,7 @@ Page({
   onShareAppMessage() {
     const c = this.data.course || {};
     return {
-      title: c.titleCn || c.title || '巴西柔术数据库',
+      title: c.titleCn || c.title || '巴柔之家数据库',
       path: '/pages/detail/detail?id=' + (c.id || ''),
       imageUrl: c.image || ''
     };
@@ -30,7 +30,7 @@ Page({
   onShareTimeline() {
     const c = this.data.course || {};
     return {
-      title: c.titleCn || c.title || '巴西柔术数据库',
+      title: c.titleCn || c.title || '巴柔之家数据库',
       query: 'id=' + (c.id || ''),
       imageUrl: c.image || ''
     };
