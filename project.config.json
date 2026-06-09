@@ -21,10 +21,18 @@
       { "type": "folder", "value": ".backup-20260607" },
       { "type": "file", "value": "README.md" },
       { "type": "file", "value": ".gitignore" },
-      { "type": "file", "value": "project.private.config.json" }
+      { "type": "file", "value": "project.private.config.json" },
+      { "type": "folder", "value": "cloudfunctions" },
+      { "type": "folder", "value": "images" },
+      { "type": "folder", "value": "scripts" },
+      { "type": "folder", "value": "data" },
+      { "type": "file", "value": "pkgDetail/details.js" },
+      { "type": "file", "value": "DEPLOY.md" },
+      { "type": "file", "value": "deploy.sh" }
     ],
     "include": []
   },
   "appid": "wxe2cb602350b9413c",
+  "cloudfunctionRoot": "cloudfunctions/",
   "editorSetting": {}
 }
