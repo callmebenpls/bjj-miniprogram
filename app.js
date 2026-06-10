@@ -1,4 +1,4 @@
-const TITLE_FONT = 'cloud://cloudbase-d2gjwgi5reb74969f.636c-cloudbase-d2gjwgi5reb74969f-1441813913/fonts/bjj-title.ttf';
+const { TITLE_FONT_B64 } = require('./title-font.js');
 
 App({
   onLaunch() {
@@ -7,21 +7,18 @@ App({
         env: wx.cloud.DYNAMIC_CURRENT_ENV,
         traceUser: true
       });
-      this.loadTitleFont();
     }
+    this.loadTitleFont();
   },
 
-  // Subset serif font (only the 巴柔之家 glyphs, ~3KB) so the title renders
-  // identically on Android, which ships no Chinese serif. Failure is fine —
-  // CSS falls back to Songti SC / system sans.
-  async loadTitleFont() {
+  // Subset serif font (only the 巴柔之家 glyphs, ~3KB) embedded as base64 so
+  // the title renders identically on Android (which ships no Chinese serif)
+  // with no font-swap flash. Failure is fine — CSS falls back to Songti SC.
+  loadTitleFont() {
     try {
-      const res = await wx.cloud.getTempFileURL({ fileList: [TITLE_FONT] });
-      const url = res.fileList[0] && res.fileList[0].tempFileURL;
-      if (!url) return;
       wx.loadFontFace({
         family: 'BJJTitle',
-        source: `url("${url}")`,
+        source: `url("data:font/ttf;base64,${TITLE_FONT_B64}")`,
         global: true,
         scopes: ['webview', 'native']
       });
