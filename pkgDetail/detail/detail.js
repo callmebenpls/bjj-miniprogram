@@ -1,6 +1,7 @@
 Page({
   data: {
     course: null,
+    config: {},
     loading: true
   },
 
@@ -20,25 +21,29 @@ Page({
       });
 
       const course = res.result.course;
+      const config = res.result.config || {};
       if (!course) {
         wx.showToast({ title: '课程未找到', icon: 'none' });
         this.setData({ loading: false });
         return;
       }
 
-      // Resolve cover image (only cloud:// paths, local /images/... work directly)
+      // Precompute fields WXML can't express (no method calls in bindings)
+      const insts = course.instructors || (course.instructor ? [course.instructor] : []);
+      course.coachText = insts.join(' & ');
+      const badges = (config.home && config.home.badges) || [];
+      course.badgeIcons = badges
+        .filter(b => b.showOnDetail && (course.badges || []).indexOf(b.id) >= 0)
+        .map(b => b.icon);
+
       if (course.image && course.image.startsWith('cloud://')) {
         try {
-          const imgRes = await wx.cloud.getTempFileURL({
-            fileList: [course.image]
-          });
+          const imgRes = await wx.cloud.getTempFileURL({ fileList: [course.image] });
           course.image = imgRes.fileList[0]?.tempFileURL || '';
-        } catch (e) {
-          course.image = ''; // clear unresolved cloud:// path
-        }
+        } catch (e) { course.image = ''; }
       }
 
-      this.setData({ course, loading: false });
+      this.setData({ course, config, loading: false });
     } catch (err) {
       console.error('Load detail failed:', err);
       wx.showToast({ title: '加载失败', icon: 'none' });

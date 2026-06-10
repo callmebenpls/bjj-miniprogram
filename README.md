@@ -25,32 +25,47 @@ Jiu-Jitsu instructional courses by five elite instructors.
 └──────────────────────────────────│──┘
                                    │
 ┌──────────────────────────────────▼──┐
-│   WeChat Cloud Functions            │
+│   WeChat Cloud Functions (thin)     │
 │                                     │
-│  getCourses      (list + filter)    │
+│  getCourses      (list + coaches)   │
 │  getCourseDetail (detail by ID)     │
-│  getCategories   (20 categories)    │
-│  getCoaches      (5 coaches + imgs) │
 │                                     │
-│  Cloud Storage: images/covers/      │
-│                 images/coaches/     │
+│  Cloud Storage (source of truth):   │
+│    data/courses.json, details.json  │
+│    images/thumbs/ covers/ coaches/  │
 └─────────────────────────────────────┘
 ```
+
+Data lives in Cloud Storage — adding or editing courses needs **no function
+redeploy and no app release** (functions cache data for 5 minutes).
+
+### Admin Panel
+
+```bash
+node admin-server.js   # → http://localhost:3456
+```
+
+Browser UI to edit courses, categories, coaches, badges, and app styling.
+Saves to the local data files and deploys straight to Cloud Storage
+(credentials read from `.env` — never commit that file).
 
 ### Project Structure
 
 ```
 bjj-miniprogram/
 ├── cloudfunctions/          # WeChat Cloud Functions (backend)
-│   ├── getCourses/          # Course list API
+│   ├── getCourses/          # Course list + coaches API
 │   ├── getCourseDetail/     # Course detail API
-│   ├── getCategories/       # Categories API
-│   └── getCoaches/          # Coaches API
+│   ├── getCategories/       # (legacy, unused by app)
+│   └── getCoaches/          # (legacy fallback)
 ├── scripts/
-│   └── prep-cloud-functions.js  # Data generation for cloud functions
+│   └── upload-data.js       # Upload data files to Cloud Storage
+├── admin-server.js          # Local admin panel server (port 3456)
+├── admin-panel.html         # Admin panel UI
 ├── pages/index/             # Home: course list, search, filter
 ├── pkgDetail/detail/        # Course detail page
-├── data/courses.js          # Source course data (used by prep script)
+├── data/courses.js          # Source course data (list level)
+├── pkgDetail/details.js     # Source course data (detail level)
 ├── images/                  # Local images (upload to Cloud Storage)
 ├── app.js                   # Entry: wx.cloud.init()
 ├── app.json                 # App config

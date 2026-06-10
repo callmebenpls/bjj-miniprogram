@@ -61,6 +61,34 @@
       {
         "type": "file",
         "value": "deploy.sh"
+      },
+      {
+        "type": "file",
+        "value": "admin-panel.html"
+      },
+      {
+        "type": "file",
+        "value": "admin-server.js"
+      },
+      {
+        "type": "file",
+        "value": ".env"
+      },
+      {
+        "type": "file",
+        "value": ".cloud-courses.json"
+      },
+      {
+        "type": "file",
+        "value": ".cloud-details.json"
+      },
+      {
+        "type": "file",
+        "value": ".tmp-courses.json"
+      },
+      {
+        "type": "file",
+        "value": ".tmp-details.json"
       }
     ],
     "include": []

@@ -1,7 +1,15 @@
 <!-- ===== STATUS BAR PLACEHOLDER ===== -->
-<view class="status-bar">巴柔之家</view>
+<view class="status-bar" style="background:{{config.home.accent || '#c0392b'}};color:#fff">{{config.home.title || '巴柔之家'}}</view>
 
-<scroll-view class="page" scroll-y="true" enhanced show-scrollbar="{{false}}" lower-threshold="50">
+<scroll-view class="page" scroll-y="true" enhanced show-scrollbar="{{false}}" lower-threshold="50" style="background:{{config.home.bg || '#ffffff'}}">
+
+  <!-- ===== LOADING ===== -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-dot"></view>
+    <view class="loading-text">加载中...</view>
+  </view>
+
+  <block wx:else>
 
   <!-- ===== SEARCH ===== -->
   <view class="search-bar">
@@ -12,40 +20,58 @@
   <view class="section-label">分类</view>
   <scroll-view class="chip-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
     <view class="chip-row">
-      <view class="chip {{curCat === 'all' ? 'active' : ''}}" data-cat="all" bindtap="setCat">全部</view>
-      <view wx:for="{{categories}}" wx:key="index" class="chip {{curCat === item ? 'active' : ''}}" data-cat="{{item}}" bindtap="setCat">{{item}}</view>
+      <view class="chip {{curCat === 'all' ? 'active' : ''}}" data-cat="all" bindtap="setCat" style="{{curCat==='all'?'background:'+(config.home.accent||'#c0392b')+';color:#fff':''}}">全部</view>
+      <view wx:for="{{categories}}" wx:key="index" class="chip {{curCat === item ? 'active' : ''}}" data-cat="{{item}}" bindtap="setCat" style="{{curCat===item?'background:'+(config.home.accent||'#c0392b')+';color:#fff':''}}">{{item}}</view>
     </view>
   </scroll-view>
 
   <!-- ===== COACH AVATARS ===== -->
-  <view class="section-label">教练</view>
-  <scroll-view class="coach-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
-    <view class="coach-item {{curCoach === '' ? 'active' : ''}}" data-name="" bindtap="setCoach">
-      <view class="coach-avatar all-icon">全</view>
-      <view class="coach-name-sm">全部</view>
-      <view class="coach-count">{{allCount}}门</view>
-    </view>
-    <view wx:for="{{coachList}}" wx:key="index" class="coach-item {{curCoach === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="setCoach">
-      <view class="coach-avatar">
-        <image wx:if="{{item.avatar}}" class="coach-avatar-img" src="{{item.avatar}}" mode="aspectFill" lazy-load="true" />
-        <text wx:else>{{item.initial}}</text>
+  <block wx:if="{{config.home.showCoachAvatars !== false}}">
+    <view class="section-label">教练</view>
+    <scroll-view class="coach-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
+      <view class="coach-item {{curCoach === '' ? 'active' : ''}}" data-name="" bindtap="setCoach">
+        <view class="coach-avatar all-icon">全</view>
+        <view class="coach-name-sm">全部</view>
+        <view class="coach-count">{{allCount}}门</view>
       </view>
-      <view class="coach-name-sm">{{item.name}}</view>
-      <view class="coach-count">{{item.count}}门</view>
-    </view>
-  </scroll-view>
+      <view wx:for="{{coachList}}" wx:key="index" class="coach-item {{curCoach === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="setCoach">
+        <view class="coach-avatar">
+          <image wx:if="{{item.avatar}}" class="coach-avatar-img" src="{{item.avatar}}" mode="aspectFill" lazy-load="true" />
+          <text wx:else>{{item.initial}}</text>
+        </view>
+        <view class="coach-name-sm">{{item.name}}</view>
+        <view class="coach-count">{{item.count}}门</view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <!-- ===== BADGE FILTER (configurable) ===== -->
+  <view wx:if="{{config.home.showBadgeSearch && config.home.badges && config.home.badges.length > 0}}">
+    <view class="section-label">标签</view>
+    <scroll-view class="chip-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
+      <view class="chip-row">
+        <view class="chip {{curBadge === '' ? 'active' : ''}}" data-badge="" bindtap="setBadge" style="{{curBadge===''?'background:'+(config.home.accent||'#c0392b')+';color:#fff':''}}">全部</view>
+        <view wx:for="{{config.home.badges}}" wx:key="id" class="chip {{curBadge === item.id ? 'active' : ''}}" data-badge="{{item.id}}" bindtap="setBadge" style="{{curBadge===item.id?'background:'+(config.home.accent||'#c0392b')+';color:#fff':''}}">{{item.icon}} {{item.text}}</view>
+      </view>
+    </scroll-view>
+  </view>
 
   <!-- ===== COURSE LIST ===== -->
   <view class="section-label">课程</view>
   <view wx:if="{{filteredCourses.length === 0}}" class="empty-state">没有相关课程</view>
-  <view wx:for="{{filteredCourses}}" wx:key="id" class="course-card" data-id="{{item.id}}" bindtap="openDetail">
+  <view wx:for="{{filteredCourses}}" wx:key="id" class="course-card" data-id="{{item.id}}" bindtap="openDetail" style="background:{{config.home.cardBg || '#ffffff'}}">
     <image wx:if="{{item.image}}" class="course-thumb" src="{{item.image}}" mode="aspectFill" lazy-load="true" />
     <view wx:else class="course-thumb" style="background:#f0f0f0;"></view>
     <view class="course-info">
-      <view class="course-title">{{item.titleCn || item.title}}</view>
-      <view class="course-instructor">{{item.instructor}}</view>
-      <view class="course-meta">{{item.cat}} · {{item.volumes || '0'}} 卷</view>
+      <view class="course-title" style="font-size:{{config.home.courseTitleSize || 16}}px;color:{{config.home.courseTitleColor || '#1a1a2e'}}">{{item.titleCn || item.title}}</view>
+      <view class="course-instructor">
+        <text wx:for="{{item.badgeIcons}}" wx:for-item="icon" wx:key="*this" class="badge-icon">{{icon}}</text>
+        {{item.coachText}}
+      </view>
+      <view class="course-meta">{{item.catText}}<text wx:if="{{item.volumes > 0}}"> · {{item.volumes}} 卷</text></view>
     </view>
   </view>
+
+  </block>
 
 </scroll-view>

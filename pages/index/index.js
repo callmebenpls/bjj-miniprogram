@@ -1,5 +1,6 @@
 Page({
   data: {
+    config: {},
     categories: [],
     coachList: [],
     allCourses: [],
@@ -7,14 +8,14 @@ Page({
     filteredCourses: [],
     curCat: 'all',
     curCoach: '',
+    curBadge: '',
+    query: '',
     loading: true
   },
 
   onShareAppMessage() {
-    return {
-      title: '巴柔之家合集 · 顶尖教练系统教程',
-      path: '/pages/index/index'
-    };
+    const title = (this.data.config.home && this.data.config.home.title) || '巴柔之家';
+    return { title: title + '合集 · 顶尖教练系统教程', path: '/pages/index/index' };
   },
 
   onLoad() {
@@ -23,18 +24,22 @@ Page({
 
   async loadData() {
     try {
-      const [coursesRes, coachesRes] = await Promise.all([
-        wx.cloud.callFunction({ name: 'getCourses' }),
-        wx.cloud.callFunction({ name: 'getCoaches' })
-      ]);
+      const coursesRes = await wx.cloud.callFunction({ name: 'getCourses' });
+      const { config, categories, courses } = coursesRes.result;
 
-      const { categories, courses } = coursesRes.result;
-      const { coaches } = coachesRes.result;
+      // getCourses now returns coaches too (saves one call);
+      // fall back to getCoaches if the deployed function is the old version
+      let coaches = coursesRes.result.coaches;
+      if (!coaches) {
+        const coachesRes = await wx.cloud.callFunction({ name: 'getCoaches' });
+        coaches = coachesRes.result.coaches;
+      }
 
-      // Resolve cloud image URLs
+      this.decorate(courses, config);
       await this.resolveImages(courses, coaches);
 
       this.setData({
+        config: config || {},
         categories,
         coachList: coaches,
         allCourses: courses,
@@ -49,15 +54,26 @@ Page({
     }
   },
 
+  // Precompute display fields WXML can't express (no method calls in bindings)
+  decorate(courses, config) {
+    const badges = (config && config.home && config.home.badges) || [];
+    courses.forEach(c => {
+      const cats = c.cats || (c.cat ? [c.cat] : []);
+      const insts = c.instructors || (c.instructor ? [c.instructor] : []);
+      c.catText = cats.join(' / ');
+      c.coachText = insts.join(' & ');
+      c.badgeIcons = badges
+        .filter(b => b.showOnList && (c.badges || []).indexOf(b.id) >= 0)
+        .map(b => b.icon);
+    });
+  },
+
   async resolveImages(courses, coaches) {
-    // Collect all cloud:// file IDs
     const cloudFileIDs = [];
     courses.forEach(c => { if (c.image && c.image.startsWith('cloud://')) cloudFileIDs.push(c.image); });
     coaches.forEach(c => { if (c.avatar && c.avatar.startsWith('cloud://')) cloudFileIDs.push(c.avatar); });
-
     if (!cloudFileIDs.length) return;
 
-    // getTempFileURL max 50 per call — batch them
     const BATCH = 50;
     const resolved = {};
     for (let i = 0; i < cloudFileIDs.length; i += BATCH) {
@@ -68,34 +84,16 @@ Page({
         (res.fileList || []).forEach(f => {
           if (f.tempFileURL) resolved[f.fileID] = f.tempFileURL;
         });
-      } catch (e) {
-        console.warn('Image batch failed:', i, e);
-      }
+      } catch (e) { console.warn('Image batch failed:', i, e); }
     }
 
-    // Apply resolved URLs, clear unresolved
-    courses.forEach(c => {
-      if (c.image && c.image.startsWith('cloud://')) {
-        c.image = resolved[c.image] || '';
-      }
-    });
-    coaches.forEach(c => {
-      if (c.avatar && c.avatar.startsWith('cloud://')) {
-        c.avatar = resolved[c.avatar] || '';
-      }
-    });
+    courses.forEach(c => { if (c.image && c.image.startsWith('cloud://')) c.image = resolved[c.image] || ''; });
+    coaches.forEach(c => { if (c.avatar && c.avatar.startsWith('cloud://')) c.avatar = resolved[c.avatar] || ''; });
   },
 
   onSearch(e) {
-    const q = e.detail.value.toLowerCase().trim();
-    if (!q) { this.doFilter(); return; }
-    const filtered = this.data.allCourses.filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      c.titleCn.toLowerCase().includes(q) ||
-      c.instructor.toLowerCase().includes(q) ||
-      c.cat.includes(q)
-    );
-    this.setData({ filteredCourses: filtered });
+    this.data.query = e.detail.value.toLowerCase().trim();
+    this.doFilter();
   },
 
   setCat(e) {
@@ -109,19 +107,34 @@ Page({
     this.doFilter();
   },
 
+  setBadge(e) {
+    const id = e.currentTarget.dataset.badge;
+    this.data.curBadge = this.data.curBadge === id ? '' : id;
+    this.doFilter();
+  },
+
+  // Single filter pass: search query + category + coach + badge all compose
   doFilter() {
+    const { curCat, curCoach, curBadge, query } = this.data;
     let filtered = this.data.allCourses;
-    if (this.data.curCat !== 'all') {
-      filtered = filtered.filter(c => c.cat === this.data.curCat);
+    if (curCat !== 'all') {
+      filtered = filtered.filter(c => (c.cats || []).includes(curCat));
     }
-    if (this.data.curCoach) {
-      filtered = filtered.filter(c => c.instructor === this.data.curCoach);
+    if (curCoach) {
+      filtered = filtered.filter(c => (c.instructors || []).includes(curCoach));
     }
-    this.setData({
-      filteredCourses: filtered,
-      curCat: this.data.curCat,
-      curCoach: this.data.curCoach
-    });
+    if (curBadge) {
+      filtered = filtered.filter(c => (c.badges || []).includes(curBadge));
+    }
+    if (query) {
+      filtered = filtered.filter(c =>
+        c.title.toLowerCase().includes(query) ||
+        (c.titleCn || '').toLowerCase().includes(query) ||
+        (c.instructors || []).join(' ').toLowerCase().includes(query) ||
+        (c.cats || []).join(' ').includes(query)
+      );
+    }
+    this.setData({ filteredCourses: filtered, curCat, curCoach, curBadge });
   },
 
   openDetail(e) {

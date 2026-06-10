@@ -1,39 +1,45 @@
-// Cloud function: getCoaches
-// Returns 5 elite BJJ coaches with avatar paths and course counts
+// getCoaches — reads from Cloud Storage, coach avatars from data (no code redeploy needed)
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
-const { courses } = require('./courses.json');
-
 const ENV = 'cloudbase-d2gjwgi5reb74969f';
-const CLOUD_BASE = `cloud://${ENV}.636c-${ENV}`;
+const DATA_FILE = `cloud://${ENV}.636c-${ENV}-1441813913/data/courses.json`;
+const CLOUD_BASE = `cloud://${ENV}.636c-${ENV}-1441813913`;
 
-// Coach avatar file names
-const COACH_AVATARS = {
-  'John Danaher': 'danaher.jpg',
-  'Gordon Ryan': 'gordon.jpg',
-  'Mikey Musumeci': 'mikey.jpg',
-  'Craig Jones': 'craig.jpg',
-  'Lachlan Giles': 'lachlan.jpg'
-};
+let _cache = null;
+let _cacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000;
 
 exports.main = async (event, context) => {
-  const map = {};
+  if (!_cache || Date.now() - _cacheTime > CACHE_TTL) {
+    const res = await cloud.downloadFile({ fileID: DATA_FILE });
+    _cache = JSON.parse(res.fileContent.toString());
+    _cacheTime = Date.now();
+  }
+
+  const { courses, coachAvatars } = _cache;
+  const avatars = coachAvatars || {};
+
+  // Count courses per instructor (from instructors array)
+  const counts = {};
   courses.forEach(c => {
-    if (!map[c.instructor]) map[c.instructor] = [];
-    map[c.instructor].push(c);
+    const insts = c.instructors || (c.instructor ? [c.instructor] : []);
+    insts.forEach(name => {
+      counts[name] = (counts[name] || 0) + 1;
+    });
   });
 
-  const coaches = Object.keys(map).map(name => {
+  // Build coach list in the order defined in coachAvatars
+  const coaches = Object.keys(avatars).map(name => {
     const parts = name.split(' ');
     return {
       name,
       initial: parts.map(w => w[0]).join(''),
-      avatar: COACH_AVATARS[name] ? `${CLOUD_BASE}/images/coaches/${COACH_AVATARS[name]}` : '',
+      avatar: `${CLOUD_BASE}/images/coaches/${avatars[name]}`,
       lastName: parts[parts.length - 1],
-      count: map[name].length
+      count: counts[name] || 0
     };
-  }).sort((a, b) => a.lastName.localeCompare(b.lastName));
+  });
 
   return { coaches };
 };

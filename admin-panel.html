@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>巴柔之家 · 管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;color:#333}
+.header{background:#1a1a2e;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px}
+.info{font-size:11px;color:#999}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;overflow-x:auto;position:sticky;top:0;z-index:10}
+.tab{padding:14px 20px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;color:#666}
+.tab.active{color:#c0392b;border-bottom-color:#c0392b;font-weight:bold}
+.content{padding:20px;max-width:900px;margin:0 auto}
+.card{background:#fff;border-radius:8px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.row label{width:72px;font-size:12px;color:#888;flex-shrink:0}
+.row input,.row select,.row textarea{flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:13px}
+.row textarea{min-height:56px;resize:vertical}
+.row input[type=number]{flex:none;width:64px}
+.btn{padding:7px 16px;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:bold}
+.btn-red{background:#c0392b;color:#fff}
+.btn-red:hover{background:#a93226}
+.btn-gray{background:#eee;color:#666}
+.btn-gray:hover{background:#ddd}
+.btn-sm{padding:4px 10px;font-size:11px}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;margin:2px}
+.tag-cat{background:#e8f4fd;color:#2a7ab5}
+.tag-coach{background:#fdf2f2;color:#c0392b}
+.course-row{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;display:flex;align-items:center;gap:10px}
+.course-row:hover{background:#f9f9f9}
+.course-row .thumb{width:40px;height:30px;object-fit:cover;border-radius:3px;background:#eee}
+.course-row .meta{flex:1;min-width:0}
+.course-row .title{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.course-row .sub{font-size:11px;color:#888}
+.course-row .tags{margin-top:2px}
+.search-bar{padding:8px 0}
+.search-bar input{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:12px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;padding:24px}
+.modal h2{font-size:16px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #c0392b}
+.modal .close{float:right;border:none;background:none;font-size:20px;cursor:pointer;color:#999}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.coach-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0}
+.coach-item input{flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px}
+.count-badge{background:#f0f0f0;padding:1px 6px;border-radius:10px;font-size:10px;color:#888}
+.sort-item{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f5f5f5}
+.sort-arrows{display:flex;flex-direction:column;gap:1px}
+.sort-btn{border:none;background:#e8e8e8;color:#666;cursor:pointer;font-size:10px;padding:2px 6px;border-radius:3px;line-height:1}
+.sort-btn:hover{background:#c0392b;color:#fff}
+.sort-btn:disabled{opacity:.3;cursor:default}
+.sort-btn:disabled:hover{background:#e8e8e8;color:#666}
+.drag-handle{cursor:grab;color:#bbb;font-size:16px;margin-right:4px;user-select:none}
+.drag-handle:active{cursor:grabbing}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏠 巴柔之家 · 管理后台</h1>
+  <span id="info" class="info">Loading...</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('courses')">📚 课程</div>
+  <div class="tab" onclick="switchTab('categories')">📂 分类</div>
+  <div class="tab" onclick="switchTab('coaches')">👤 讲师</div>
+  <div class="tab" onclick="switchTab('style')">🎨 样式</div>
+  <div class="tab" onclick="switchTab('badges')">🏷 标签</div>
+  <div class="tab" onclick="switchTab('upload')">📤 上传云端</div>
+</div>
+
+<div class="content" id="content"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+let state = { appConfig:{}, courses: [], categories: [], coachAvatars: {}, detailCount: 0 };
+const API = '/api/data';
+
+async function load() {
+  try {
+    const r = await fetch(API); state = await r.json();
+    document.getElementById('info').textContent = `${state.courses.length} 门课 · ${state.categories.length} 分类 · ${Object.keys(state.coachAvatars).length} 讲师`;
+    render();
+  } catch(e) { toast('加载失败: '+e.message); }
+}
+async function post(url, body) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  return r.json();
+}
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ============ Tabs ============
+let currentTab = 'courses';
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.textContent.includes(t === 'courses' ? '课程' : t === 'categories' ? '分类' : t === 'coaches' ? '讲师' : t === 'badges' ? '标签' : t === 'style' ? '样式' : '上传')));
+  render();
+}
+
+function render() {
+  switch(currentTab) {
+    case 'courses': renderCourses(); break;
+    case 'categories': renderCategories(); break;
+    case 'coaches': renderCoaches(); break;
+    case 'style': renderStyle(); break;
+    case 'badges': renderBadges(); break;
+    case 'upload': renderUpload(); break;
+  }
+}
+
+// ============ Courses ============
+function renderCourses() {
+  let h = `<div class="card"><div class="search-bar"><input placeholder="搜索课程（标题/讲师/分类）..." id="search" oninput="renderCourseList()"></div>`;
+  h += `<div id="courseList"></div></div>`;
+  document.getElementById('content').innerHTML = h;
+  renderCourseList();
+}
+
+function renderCourseList() {
+  const q = (document.getElementById('search')?.value || '').toLowerCase();
+  let filtered = state.courses;
+  if (q) filtered = filtered.filter(c => 
+    c.titleCn.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || 
+    (c.instructors||[]).join(' ').toLowerCase().includes(q) || 
+    (c.cats||[]).join(' ').includes(q)
+  );
+  
+  let h = filtered.slice(0, 200).map((c, i) => {
+    const realIdx = state.courses.indexOf(c);
+    const cats = (c.cats||[]).map(cat => `<span class="tag tag-cat">${esc(cat)}</span>`).join('');
+    const coaches = (c.instructors||[]).map(ins => `<span class="tag tag-coach">${esc(ins)}</span>`).join('');
+    return `<div class="course-row" onclick="editCourse(${realIdx})">
+      <div class="meta">
+        <div class="title">${esc(c.titleCn)}</div>
+        <div class="sub">${esc(c.title)}</div>
+        <div class="tags">${cats}${coaches}<span class="count-badge">${c.volumes}卷${c.chapters}节</span></div>
+      </div>
+      <span style="color:#ccc;font-size:18px">›</span>
+    </div>`;
+  }).join('');
+  document.getElementById('courseList').innerHTML = h || '<div style="padding:20px;text-align:center;color:#999">无匹配结果</div>';
+}
+
+function editCourse(i) {
+  const c = state.courses[i];
+  const curCats = c.cats || [];
+  const curInstrs = c.instructors || [];
+  
+  // Checkbox-based multi-select for categories and coaches
+  const catBoxes = state.categories.map(cat => {
+    return `<label style="display:inline-block;margin:2px 0"><input type="checkbox" value="${esc(cat)}" class="e-cat" ${curCats.includes(cat)?'checked':''}> ${esc(cat)}</label>`;
+  }).join('');
+  
+  const coachBoxes = Object.keys(state.coachAvatars).map(name => {
+    return `<label style="display:inline-block;margin:2px 0"><input type="checkbox" value="${esc(name)}" class="e-instr" ${curInstrs.includes(name)?'checked':''}> ${esc(name)}</label>`;
+  }).join('');
+
+  // Badge checkboxes (if any badges defined)
+  const badges = (state.appConfig.home && state.appConfig.home.badges) || [];
+  const curBadges = c.badges || [];
+  const badgeBoxes = badges.length > 0 ? 
+    badges.map(b => `<label style="display:inline-block;margin:2px 0"><input type="checkbox" value="${b.id}" class="e-badge" ${curBadges.includes(b.id)?'checked':''}> <span style="font-size:14px">${esc(b.icon)}</span> ${esc(b.text)}</label>`).join('') :
+    '<span style="font-size:11px;color:#999">暂无标签，去 🏷 标签 管理添加</span>';
+
+  let h = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <button class="close" onclick="closeModal()">×</button>
+    <h2>编辑课程</h2>
+    <div class="row"><label>中文标题</label><input id="e-tc" value="${esc(c.titleCn)}"></div>
+    <div class="row"><label>英文标题</label><input id="e-te" value="${esc(c.title)}"></div>
+    <div class="row"><label>分类</label><div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;padding:4px;border:1px solid #e0e0e0;border-radius:4px;font-size:12px">${catBoxes}</div></div>
+    <div class="row"><label>讲师</label><div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;padding:4px;border:1px solid #e0e0e0;border-radius:4px;font-size:12px">${coachBoxes}</div></div>
+    ` + (badges.length > 0 ? '<div class="row"><label>标签</label><div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:80px;overflow-y:auto;padding:4px;border:1px solid #e0e0e0;border-radius:4px;font-size:12px">' + badgeBoxes + '</div></div>' : '') + `
+    <div class="row"><label>卷数</label><input id="e-vol" type="number" value="${c.volumes}"><label>节数</label><input id="e-ch" type="number" value="${c.chapters}"></div>
+    <div class="row"><label>封面图</label><input id="e-img" value="${c.image.replace(/^.*\//,'')}"></div>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn btn-gray btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-red btn-sm" onclick="saveCourse(${i})">保存</button>
+    </div>
+  </div></div>`;
+  const div = document.createElement('div');
+  div.innerHTML = h;
+  document.body.appendChild(div.firstElementChild);
+}
+
+async function saveCourse(i) {
+  const c = state.courses[i];
+  c.titleCn = document.getElementById('e-tc').value;
+  c.title = document.getElementById('e-te').value;
+  c.cats = [...document.querySelectorAll('.e-cat:checked')].map(cb => cb.value);
+  c.instructors = [...document.querySelectorAll('.e-instr:checked')].map(cb => cb.value);
+  c.badges = [...document.querySelectorAll('.e-badge:checked')].map(cb => cb.value);
+  c.volumes = parseInt(document.getElementById('e-vol').value)||0;
+  c.chapters = parseInt(document.getElementById('e-ch').value)||0;
+  // keep the image in its original folder (list uses /images/thumbs/, detail uses /images/covers/)
+  const imgDir = (c.image && c.image.includes('/')) ? c.image.slice(0, c.image.lastIndexOf('/') + 1) : '/images/thumbs/';
+  c.image = imgDir + document.getElementById('e-img').value.trim();
+  await post('/api/data/courses/save', { appConfig: state.appConfig, categories: state.categories, courses: state.courses, coachAvatars: state.coachAvatars });
+  closeModal();
+  toast('已保存 ✓');
+  render();
+}
+
+function closeModal() {
+  document.querySelector('.modal-overlay')?.remove();
+}
+
+// ============ Categories ============
+let _dragIdx = -1;
+
+function renderCategories() {
+  let h = `<div class="card"><h3 style="margin-bottom:12px">分类列表 <span style="font-size:11px;color:#999">${state.categories.length} 个 — 拖拽排序</span></h3>`;
+  h += `<div class="row"><input id="newCat" placeholder="新分类名称"><button class="btn btn-red btn-sm" onclick="addCat()">添加</button></div>`;
+  h += `<div style="margin-top:12px" id="catList">`;
+  state.categories.forEach((cat, i) => {
+    h += `<div class="sort-item" draggable="true" 
+      ondragstart="dragStart(event,${i},'cat')" 
+      ondragover="dragOver(event)" 
+      ondrop="dropItem(event,${i},'cat')" 
+      ondragend="dragEnd(event)">
+      <span class="drag-handle">⠿</span>
+      <span class="tag tag-cat" style="font-size:13px;padding:6px 12px;cursor:pointer" ondblclick="renameCat('${esc(cat)}')" title="双击重命名">${esc(cat)}</span>
+      <span onclick="removeCat('${esc(cat)}')" style="color:#c0392b;cursor:pointer;font-size:16px;margin-left:8px">×</span>
+    </div>`;
+  });
+  h += `</div></div>`;
+  document.getElementById('content').innerHTML = h;
+}
+
+function dragStart(e, idx, type) { _dragIdx = idx; e.dataTransfer.effectAllowed = 'move'; e.target.style.opacity = '0.5'; }
+function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function dragEnd(e) { e.target.style.opacity = '1'; _dragIdx = -1; }
+
+async function dropItem(e, toIdx, type) {
+  e.preventDefault();
+  if (_dragIdx < 0 || _dragIdx === toIdx) return;
+  const arr = type === 'cat' ? state.categories : type === 'badge' ? (state.appConfig.home.badges || []) : Object.keys(state.coachAvatars);
+  const [item] = arr.splice(_dragIdx, 1);
+  arr.splice(toIdx, 0, item);
+  if (type === 'cat') {
+    await post('/api/data/reorder', { type:'categories', data: state.categories });
+  } else if (type === 'badge') {
+    await post('/api/data/config', { config: state.appConfig });
+  } else {
+    const ordered = {};
+    arr.forEach(n => { ordered[n] = state.coachAvatars[n]; });
+    state.coachAvatars = ordered;
+    await post('/api/data/reorder', { type:'coaches', data: state.coachAvatars });
+  }
+  _dragIdx = -1;
+  render();
+}
+
+async function addCat() {
+  const v = document.getElementById('newCat').value.trim();
+  if (!v) return;
+  const r = await post('/api/data/categories', { action:'add', name:v });
+  state.categories = r.categories;
+  toast('已添加 ✓');
+  render();
+}
+
+async function removeCat(cat) {
+  const r = await post('/api/data/categories', { action:'remove', name:cat });
+  state.categories = r.categories;
+  toast('已删除 ✓');
+  render();
+}
+
+async function renameCat(oldName) {
+  const nu = prompt('重命名分类:', oldName);
+  if (!nu || nu === oldName) return;
+  const r = await post('/api/data/categories', { action:'rename', name:oldName, newName:nu });
+  state.categories = r.categories;
+  toast('已重命名 ✓');
+  render();
+}
+
+// ============ Coaches ============
+function renderCoaches() {
+  const names = Object.keys(state.coachAvatars);
+  let h = `<div class="card"><h3 style="margin-bottom:12px">讲师列表 <span style="font-size:11px;color:#999">${names.length} 位 — 拖拽排序</span></h3>`;
+  names.forEach((name, i) => {
+    const count = state.courses.filter(c => (c.instructors||[]).includes(name)).length;
+    h += `<div class="sort-item" draggable="true"
+      ondragstart="dragStart(event,${i},'coach')" 
+      ondragover="dragOver(event)" 
+      ondrop="dropItem(event,${i},'coach')" 
+      ondragend="dragEnd(event)">
+      <span class="drag-handle">⠿</span>
+      <span style="font-weight:bold;font-size:13px;min-width:100px;cursor:pointer" ondblclick="renameCoach('${esc(name)}')" title="双击重命名">${esc(name)}</span>
+      <span class="count-badge">${count} 门课</span>
+      <span style="font-size:11px;color:#999;margin:0 4px">头像:</span>
+      <input value="${esc(state.coachAvatars[name]||'')}" id="av-${esc(name)}" style="width:120px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px" onclick="event.stopPropagation()">
+      <button class="btn btn-red btn-sm" onclick="event.stopPropagation();saveCoach('${esc(name)}')">保存</button>
+    </div>`;
+  });
+  h += `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee">
+    <div class="row"><input id="newCoachName" placeholder="新讲师姓名"><input id="newCoachAvatar" placeholder="头像文件名"><button class="btn btn-red btn-sm" onclick="addCoach()">添加</button></div>
+  </div></div>`;
+  document.getElementById('content').innerHTML = h;
+}
+
+// Clean up old move functions
+async function moveCoach(i, dir) { /* replaced by drag-drop */ }
+async function moveCat(i, dir) { /* replaced by drag-drop */ }
+let _coachOrder = null;
+
+async function saveCoach(name) {
+  const av = document.getElementById('av-'+name).value.trim();
+  await post('/api/data/coaches', { name, avatar: av });
+  state.coachAvatars[name] = av;
+  toast('已保存 ✓');
+}
+
+async function addCoach() {
+  const name = document.getElementById('newCoachName').value.trim();
+  const av = document.getElementById('newCoachAvatar').value.trim();
+  if (!name || !av) return;
+  await post('/api/data/coaches', { name, avatar: av });
+  state.coachAvatars[name] = av;
+  toast('已添加 ✓');
+  render();
+}
+
+async function renameCoach(oldName) {
+  const nu = prompt('重命名讲师:', oldName);
+  if (!nu || nu === oldName || state.coachAvatars[nu]) return;
+  const r = await post('/api/data/coaches', { action:'rename', name:oldName, newName:nu });
+  state.coachAvatars = r.coachAvatars;
+  toast('已重命名 ✓');
+  render();
+}
+
+// ============ Style ============
+function renderStyle() {
+  const cfg = state.appConfig || {};
+  const home = cfg.home || {};
+  const detail = cfg.detail || {};
+  document.getElementById('content').innerHTML = `<div class="card">
+    <h3 style="margin-bottom:12px">🏠 首页样式</h3>
+    <div class="row"><label>标题</label><input id="s-title" value="${esc(home.title||'巴柔之家')}"></div>
+    <div class="row"><label>强调色</label><input id="s-accent" type="color" value="${home.accent||'#c0392b'}"><input id="s-accent-t" value="${home.accent||'#c0392b'}" onchange="document.getElementById('s-accent').value=this.value"></div>
+    <div class="row"><label>背景色</label><input id="s-bg" type="color" value="${home.bg||'#f5f5f5'}"><input id="s-bg-t" value="${home.bg||'#f5f5f5'}" onchange="document.getElementById('s-bg').value=this.value"></div>
+    <div class="row"><label>卡片色</label><input id="s-cardBg" type="color" value="${home.cardBg||'#ffffff'}"><input id="s-cardBg-t" value="${home.cardBg||'#ffffff'}" onchange="document.getElementById('s-cardBg').value=this.value"></div>
+    <div class="row"><label>标题字号</label><input id="s-titleSize" type="number" value="${home.courseTitleSize||16}" style="width:50px">px</div>
+    <div class="row"><label>标题色</label><input id="s-titleColor" type="color" value="${home.courseTitleColor||'#1a1a2e'}"><input id="s-titleColor-t" value="${home.courseTitleColor||'#1a1a2e'}" onchange="document.getElementById('s-titleColor').value=this.value"></div>
+    <div class="row"><label>显示头像</label><input id="s-showAvatars" type="checkbox" ${home.showCoachAvatars!==false?'checked':''}></div>
+    <div class="row"><label>标签筛选器</label><input id="s-showBadges" type="checkbox" ${home.showBadgeSearch?'checked':''}></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:12px">📄 详情页样式</h3>
+    <div class="row"><label>强调色</label><input id="d-accent" type="color" value="${detail.accent||'#c0392b'}"><input id="d-accent-t" value="${detail.accent||'#c0392b'}" onchange="document.getElementById('d-accent').value=this.value"></div>
+    <div class="row"><label>头部色</label><input id="d-headerBg" type="color" value="${detail.headerBg||'#1a1a2e'}"><input id="d-headerBg-t" value="${detail.headerBg||'#1a1a2e'}" onchange="document.getElementById('d-headerBg').value=this.value"></div>
+    <div class="row"><label>分享按钮</label><input id="d-shareText" value="${esc(detail.shareText||'分享给朋友')}"></div>
+    <div class="row"><label>按钮颜色</label><input id="d-shareColor" type="color" value="${detail.shareColor||'#c0392b'}"><input id="d-shareColor-t" value="${detail.shareColor||'#c0392b'}" onchange="document.getElementById('d-shareColor').value=this.value"></div>
+    <div class="row"><label>正文字号</label><input id="d-chapterSize" type="number" value="${detail.chapterFontSize||13}" style="width:50px">px</div>
+    <div class="row"><label>显示封面</label><input id="d-showCover" type="checkbox" ${detail.showCover!==false?'checked':''}></div>
+    <div class="row"><label>显示介绍</label><input id="d-showDesc" type="checkbox" ${detail.showDescription!==false?'checked':''}></div>
+    <div class="row"><label>页脚文字</label><input id="d-footer" value="${esc(detail.footerText||'2026')}"></div>
+  </div>
+  <button class="btn btn-red" onclick="saveStyle()" style="width:120px;margin-top:8px">保存样式</button>`;
+}
+
+async function saveStyle() {
+  const cfg = {
+    home: {
+      accent: document.getElementById('s-accent').value,
+      bg: document.getElementById('s-bg').value,
+      title: document.getElementById('s-title').value,
+      cardBg: document.getElementById('s-cardBg').value,
+      courseTitleSize: parseInt(document.getElementById('s-titleSize').value)||16,
+      courseTitleColor: document.getElementById('s-titleColor').value,
+      showCoachAvatars: document.getElementById('s-showAvatars').checked,
+      showBadgeSearch: document.getElementById('s-showBadges').checked,
+      badges: ((state.appConfig.home && state.appConfig.home.badges) || [])
+    },
+    detail: {
+      accent: document.getElementById('d-accent').value,
+      headerBg: document.getElementById('d-headerBg').value,
+      shareText: document.getElementById('d-shareText').value,
+      shareColor: document.getElementById('d-shareColor').value,
+      chapterFontSize: parseInt(document.getElementById('d-chapterSize').value)||13,
+      showCover: document.getElementById('d-showCover').checked,
+      showDescription: document.getElementById('d-showDesc').checked,
+      footerText: document.getElementById('d-footer').value
+    }
+  };
+  await post('/api/data/config', { config: cfg });
+  state.appConfig = cfg;
+  toast('样式已保存 ✓');
+}
+// ============ Badges ============
+function renderBadges() {
+  const badges = (state.appConfig.home && state.appConfig.home.badges) || [];
+  let h = `<div class="card"><h3 style="margin-bottom:12px">标签管理 <span style="font-size:11px;color:#999">${badges.length} 个</span></h3>`;
+  badges.forEach((b, i) => {
+    h += `<div class="sort-item" draggable="true"
+      ondragstart="dragStart(event,${i},'badge')" ondragover="dragOver(event)" ondrop="dropItem(event,${i},'badge')" ondragend="dragEnd(event)">
+      <span class="drag-handle">⠿</span>
+      <span style="font-size:16px;min-width:28px;text-align:center">${esc(b.icon)}</span>
+      <input value="${esc(b.text)}" id="bd-text-${i}" style="width:100px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px" placeholder="文本" onclick="event.stopPropagation()">
+      <span style="font-size:11px;color:#888">列表:</span>
+      <input type="checkbox" id="bd-list-${i}" ${b.showOnList?'checked':''} onclick="event.stopPropagation()">
+      <span style="font-size:11px;color:#888">详情:</span>
+      <input type="checkbox" id="bd-detail-${i}" ${b.showOnDetail?'checked':''} onclick="event.stopPropagation()">
+      <button class="btn btn-red btn-sm" onclick="event.stopPropagation();saveBadge(${i})">保存</button>
+      <button class="btn btn-gray btn-sm" onclick="event.stopPropagation();removeBadge('${esc(b.id)}')">✕</button>
+    </div>`;
+  });
+  h += `<div style="margin-top:12px"><div class="row">
+    <input id="newBadgeIcon" placeholder="图标" style="width:60px;flex:none">
+    <input id="newBadgeText" placeholder="文本" style="width:120px;flex:none">
+    <button class="btn btn-red btn-sm" onclick="addBadge()">添加标签</button>
+  </div></div>`;
+  h += `<div style="margin-top:8px;font-size:11px;color:#999">💡 图标可用 emoji 或单个文字</div>`;
+  h += `</div>`;
+  document.getElementById('content').innerHTML = h;
+}
+
+async function saveBadge(i) {
+  const badges = state.appConfig.home.badges;
+  badges[i].text = document.getElementById('bd-text-'+i).value;
+  badges[i].showOnList = document.getElementById('bd-list-'+i).checked;
+  badges[i].showOnDetail = document.getElementById('bd-detail-'+i).checked;
+  await post('/api/data/config', { config: state.appConfig });
+  toast('已保存 ✓');
+}
+
+async function addBadge() {
+  const icon = document.getElementById('newBadgeIcon').value.trim();
+  const text = document.getElementById('newBadgeText').value.trim();
+  if (!icon || !text) return;
+  state.appConfig.home.badges.push({ id: 'bdg_'+Date.now(), icon, text, showOnList: false, showOnDetail: false });
+  await post('/api/data/config', { config: state.appConfig });
+  render();
+  toast('已添加 ✓');
+}
+
+async function removeBadge(id) {
+  state.appConfig.home.badges = state.appConfig.home.badges.filter(b => b.id !== id);
+  // Also remove from all courses
+  state.courses.forEach(c => { c.badges = (c.badges||[]).filter(bid => bid !== id); });
+  await post('/api/data/courses/save', { appConfig: state.appConfig, categories: state.categories, courses: state.courses, coachAvatars: state.coachAvatars });
+  render();
+  toast('已删除 ✓');
+}
+
+function renderUpload() {
+  document.getElementById('content').innerHTML = `<div class="card">
+    <h3 style="margin-bottom:12px">一键部署到云端</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:16px">将当前数据直接上传至 Cloud Storage。小程序 5 分钟内自动更新。</p>
+    <button class="btn btn-red" onclick="deploy()" style="width:200px;padding:12px;font-size:14px" id="deployBtn">⬆ 部署到云端</button>
+    <div id="deployResult" style="margin-top:16px"></div>
+  </div>`;
+}
+
+async function deploy() {
+  const btn = document.getElementById('deployBtn');
+  btn.textContent = '上传中...'; btn.disabled = true;
+  try {
+    const r = await fetch('/api/deploy', { method:'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      document.getElementById('deployResult').innerHTML = `
+        <div style="background:#e8f5e9;padding:12px;border-radius:6px;font-size:13px">
+        ✅ 部署成功！<br>
+        courses.json (${j.sizes.courses})<br>
+        details.json (${j.sizes.details})<br>
+        <span style="color:#888">小程序 5 分钟内自动更新</span></div>`;
+      toast('已部署 ✓');
+    } else {
+      document.getElementById('deployResult').innerHTML = `
+        <div style="background:#fdf2f2;padding:12px;border-radius:6px;font-size:13px;color:#c0392b">❌ ${j.error||'失败'}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('deployResult').innerHTML = `
+      <div style="background:#fdf2f2;padding:12px;border-radius:6px;font-size:13px;color:#c0392b">❌ ${e.message}</div>`;
+  }
+  btn.textContent = '⬆ 部署到云端'; btn.disabled = false;
+}
+
+// ============ Init ============
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+load();
+</script>
+</body>
+</html>

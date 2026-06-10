@@ -1,6 +1,13 @@
 # WeChat DevTools local/private settings
 project.private.config.json
 
+# Secrets — NEVER commit (Tencent Cloud SecretId/SecretKey)
+.env
+
+# Generated cloud-upload artifacts
+.cloud-*.json
+.tmp-*.json
+
 # Local data backups
 .backup-*/
 

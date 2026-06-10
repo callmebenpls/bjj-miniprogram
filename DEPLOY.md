@@ -1,104 +1,71 @@
 # Deploy Guide — WeChat Cloud Backend
 
-This guide walks through deploying the BJJ Mini Program with WeChat Cloud Functions as the backend.
+## Architecture
+
+```
+┌─────────────────────────────────┐
+│   Cloud Storage                 │
+│   data/courses.json   (course index)    │
+│   data/details.json    (full chapters)  │
+│   images/covers/*.jpg  (152 covers)     │
+│   images/coaches/*.jpg (5 avatars)      │
+└──────────┬──────────────────────┘
+           │ downloaded at runtime
+┌──────────▼──────────────────────┐
+│   Cloud Functions (deploy once) │
+│   getCourses, getCourseDetail,  │
+│   getCategories, getCoaches     │
+└──────────┬──────────────────────┘
+           │ wx.cloud.callFunction()
+┌──────────▼──────────────────────┐
+│   Mini Program Client           │
+└─────────────────────────────────┘
+```
+
+**Key benefit:** Add/update courses → just run `node scripts/upload-data.js`. No function redeploy.
 
 ---
 
-## Step 1: Enable WeChat Cloud Development
+## One-Time Setup
 
-1. Open the [WeChat Mini Program Console](https://mp.weixin.qq.com/)
-2. Navigate to **开发 > 云开发** (Development > Cloud Development)
-3. Click **开通** (Enable) to create a cloud environment
-4. Note down your **Environment ID** (looks like `your-env-xxxxx`)
+### 1. Enable Cloud
 
----
+Go to https://mp.weixin.qq.com → 开发 → 云开发 → 开通
 
-## Step 2: Configure the Mini Program
+### 2. Deploy Cloud Functions
 
-1. Open `app.js` and replace the env comment with your Environment ID:
-   ```js
-   wx.cloud.init({
-     env: 'your-env-xxxxx',  // ← your Environment ID
-     traceUser: true
-   });
-   ```
+In WeChat DevTools, right-click each function in `cloudfunctions/` → **上传并部署：云端安装依赖**:
+- `getCourses`
+- `getCourseDetail`
+- `getCategories`
+- `getCoaches`
 
-2. In WeChat DevTools, click **云开发** (Cloud Development) in the toolbar to verify the connection.
+### 3. Upload Images
 
----
+In DevTools → 云开发 → 存储 → create folders and drag in:
+- `images/covers/` (152 JPGs)
+- `images/coaches/` (5 JPGs)
 
-## Step 3: Prepare Cloud Function Data
-
-Run this script to copy data into the cloud function directories:
+### 4. Upload Course Data
 
 ```bash
 cd bjj-miniprogram
-node scripts/prep-cloud-functions.js
-```
-
-This generates the JSON data files that each cloud function needs.
-
----
-
-## Step 4: Install & Deploy Cloud Functions
-
-For each cloud function in `cloudfunctions/`, install dependencies and deploy:
-
-### Via WeChat DevTools (Recommended)
-
-1. In DevTools, expand the `cloudfunctions/` folder in the file tree
-2. Right-click each function folder (`getCourses`, `getCourseDetail`, `getCategories`, `getCoaches`)
-3. Select **上传并部署：云端安装依赖** (Upload and Deploy: Install Dependencies in Cloud)
-
-### Via CLI
-
-```bash
-# Install dependencies locally
-cd cloudfunctions/getCourses && npm install && cd ../..
-cd cloudfunctions/getCourseDetail && npm install && cd ../..
-cd cloudfunctions/getCategories && npm install && cd ../..
-cd cloudfunctions/getCoaches && npm install && cd ../..
-
-# Then in WeChat DevTools, right-click each → Upload and Deploy
+npm install @cloudbase/manager-node
+node scripts/upload-data.js
 ```
 
 ---
 
-## Step 5: Upload Images to Cloud Storage
+## Ongoing: Adding Courses
 
-1. In WeChat DevTools, open the **云开发** (Cloud Development) panel
-2. Go to **存储** (Storage)
-3. Create these folders:
-   - `images/covers/`
-   - `images/coaches/`
-4. Upload all images:
-   - `images/covers/*.jpg` → Cloud Storage `images/covers/`
-   - `images/coaches/*.jpg` → Cloud Storage `images/coaches/`
+Easiest: use the admin panel — `node admin-server.js` → http://localhost:3456 →
+edit → 上传云端. Or by hand:
 
-> **Note:** You can also upload images via the Cloud Development Console in your browser.
+1. Edit `data/courses.js` and `pkgDetail/details.js` (add new course entries)
+2. Upload new cover image to Cloud Storage (`images/thumbs/` + `images/covers/`)
+3. Run: `node scripts/upload-data.js`
 
----
-
-## Step 6: Update Image Paths in Data
-
-After images are uploaded, find the cloud:// file IDs for each image and update the `image` fields in your course data. Each image path needs to be updated from:
-```
-/images/covers/xxx.jpg
-```
-to:
-```
-cloud://your-env-id.xxxx/images/covers/xxx.jpg
-```
-
-You can get the actual cloud:// file ID from the Cloud Storage console.
-
----
-
-## Step 7: Test
-
-1. Compile and run the mini program in WeChat DevTools
-2. The home page should load courses from the cloud
-3. Tapping a course should load its detail from the cloud
+Cloud functions pick up new data within 5 minutes (cache TTL). No redeploy needed.
 
 ---
 
@@ -106,32 +73,7 @@ You can get the actual cloud:// file ID from the Cloud Storage console.
 
 | Cloud Function | Input | Returns |
 |---|---|---|
-| `getCourses` | `{ q?, category?, instructor? }` | `{ total, categories, courses[] }` |
-| `getCourseDetail` | `{ id }` | `{ course }` |
-| `getCategories` | `{}` | `{ categories[] }` |
-| `getCoaches` | `{}` | `{ coaches[] }` |
-
----
-
-## Fallback: Local Node.js Backend
-
-A standalone Express backend is also available at `../bjj-miniprogram-backend/` for local development:
-
-```bash
-cd ../bjj-miniprogram-backend
-npm install
-npm start
-# API runs on http://localhost:3000
-```
-
-To use it with the mini program, check "不校验合法域名" in DevTools settings.
-
----
-
-## Troubleshooting
-
-**Cloud function not found:** Make sure you deployed all 4 functions via DevTools.
-
-**wx.cloud is undefined:** Make sure cloud is enabled in the WeChat console (Step 1).
-
-**Images not loading:** Verify images are uploaded to Cloud Storage and the file IDs match in your course data.
+| `getCourses` | `{ q?, category?, instructor? }` | `{ total, config, categories, courses[], coaches[] }` |
+| `getCourseDetail` | `{ id }` | `{ course, config }` |
+| `getCategories` | `{}` | `{ categories[] }` (legacy, unused by app) |
+| `getCoaches` | `{}` | `{ coaches[] }` (legacy fallback) |
