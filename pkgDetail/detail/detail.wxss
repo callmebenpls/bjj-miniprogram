@@ -70,6 +70,7 @@
 .header-label-accent {
   color: #c0392b;
   font-weight: bold;
+  margin-right: 8px;
 }
 /* Cover */
 .cover-wrap {
