@@ -87,7 +87,8 @@
 <view class="section-wrap">
   <view class="section-title-bar" style="border-bottom-color:{{config.detail.accent || '#c0392b'}}">章节列表</view>
 
-  <view wx:if="{{course.parts.length === 0}}" class="empty-chapters">暂无章节信息</view>
+  <view wx:if="{{!course.parts}}" class="empty-chapters">章节加载中…</view>
+  <view wx:elif="{{course.parts.length === 0}}" class="empty-chapters">暂无章节信息</view>
 
   <view wx:for="{{course.parts}}" wx:for-item="part" wx:key="index" class="part-card">
     <view class="part-header" style="background:{{config.detail.headerBg || '#1a1a2e'}}">

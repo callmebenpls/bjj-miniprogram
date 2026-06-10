@@ -194,6 +194,9 @@ Page({
 
   openDetail(e) {
     const id = e.currentTarget.dataset.id;
+    // Hand the tapped item to the detail page so its header paints instantly
+    const item = this.data.allCourses.find(c => c.id === id);
+    if (item) getApp().globalData.seedCourse = item;
     wx.navigateTo({ url: '/pkgDetail/detail/detail?id=' + id });
   }
 });

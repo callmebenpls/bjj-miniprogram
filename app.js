@@ -1,6 +1,8 @@
 const { TITLE_FONT_B64 } = require('./title-font.js');
 
 App({
+  globalData: {},
+
   onLaunch() {
     if (wx.cloud) {
       wx.cloud.init({
