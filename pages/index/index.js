@@ -1,3 +1,7 @@
+const CACHE_KEY = 'home_cache_v1';
+// Temp file URLs are valid ~2h; trust cached ones for 90 min
+const IMG_TTL = 90 * 60 * 1000;
+
 Page({
   data: {
     config: {},
@@ -40,10 +44,40 @@ Page({
         navHeight: (menu && menu.height) || 32
       });
     } catch (e) { /* keep defaults */ }
-    this.loadData();
+
+    // Cache-first: paint the last known data instantly, then refresh
+    const cached = this.readCache();
+    if (cached) this.applyData(cached);
+    this.loadData(!!cached);
   },
 
-  async loadData() {
+  readCache() {
+    try {
+      const c = wx.getStorageSync(CACHE_KEY);
+      if (!c || !c.courses || !c.courses.length) return null;
+      if (Date.now() - c.t > IMG_TTL) {
+        // temp URLs likely expired — drop them so cards show placeholders
+        // until the background refresh brings fresh ones
+        c.courses.forEach(x => { if (x.image && x.image.startsWith('http')) x.image = ''; });
+        (c.coaches || []).forEach(x => { if (x.avatar && x.avatar.startsWith('http')) x.avatar = ''; });
+      }
+      return c;
+    } catch (e) { return null; }
+  },
+
+  applyData({ config, categories, coaches, courses }) {
+    this.setData({
+      config: config || {},
+      categories,
+      coachList: coaches,
+      allCourses: courses,
+      allCount: courses.length,
+      loading: false
+    });
+    this.doFilter(); // re-applies any active search/filters on refresh
+  },
+
+  async loadData(silent) {
     try {
       const coursesRes = await wx.cloud.callFunction({ name: 'getCourses' });
       const { config, categories, courses } = coursesRes.result;
@@ -59,19 +93,15 @@ Page({
       this.decorate(courses, config);
       await this.resolveImages(courses, coaches);
 
-      this.setData({
-        config: config || {},
-        categories,
-        coachList: coaches,
-        allCourses: courses,
-        allCount: courses.length,
-        filteredCourses: courses,
-        loading: false
-      });
+      const payload = { config: config || {}, categories, coaches, courses };
+      this.applyData(payload);
+      try { wx.setStorageSync(CACHE_KEY, { t: Date.now(), ...payload }); } catch (e) { /* storage full — skip */ }
     } catch (err) {
       console.error('Load failed:', err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
-      this.setData({ loading: false });
+      if (!silent) {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+        this.setData({ loading: false });
+      }
     }
   },
 
@@ -96,17 +126,21 @@ Page({
     if (!cloudFileIDs.length) return;
 
     const BATCH = 50;
-    const resolved = {};
+    const batches = [];
     for (let i = 0; i < cloudFileIDs.length; i += BATCH) {
-      try {
-        const res = await wx.cloud.getTempFileURL({
-          fileList: cloudFileIDs.slice(i, i + BATCH)
-        });
-        (res.fileList || []).forEach(f => {
-          if (f.tempFileURL) resolved[f.fileID] = f.tempFileURL;
-        });
-      } catch (e) { console.warn('Image batch failed:', i, e); }
+      batches.push(cloudFileIDs.slice(i, i + BATCH));
     }
+    const resolved = {};
+    // resolve all batches in parallel — was serial, ~4x slower
+    const results = await Promise.all(batches.map(b =>
+      wx.cloud.getTempFileURL({ fileList: b }).catch(e => {
+        console.warn('Image batch failed:', e);
+        return { fileList: [] };
+      })
+    ));
+    results.forEach(res => (res.fileList || []).forEach(f => {
+      if (f.tempFileURL) resolved[f.fileID] = f.tempFileURL;
+    }));
 
     courses.forEach(c => { if (c.image && c.image.startsWith('cloud://')) c.image = resolved[c.image] || ''; });
     coaches.forEach(c => { if (c.avatar && c.avatar.startsWith('cloud://')) c.avatar = resolved[c.avatar] || ''; });
