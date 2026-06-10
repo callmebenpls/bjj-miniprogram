@@ -9,7 +9,7 @@ const COURSES_FILE = `cloud://${ENV}.636c-${ENV}-1441813913/data/courses.json`;
 
 let _cache = null, _configCache = null;
 let _cacheTime = 0, _configTime = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 15 * 60 * 1000;
 
 exports.main = async (event, context) => {
   if (!_cache || Date.now() - _cacheTime > CACHE_TTL) {

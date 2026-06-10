@@ -65,9 +65,11 @@ function syncDetailsFromCourses(courses, details) {
   return changed;
 }
 
-// Generate JSON for cloud upload
+// Generate JSON for cloud upload. Each deploy stamps a version (_v) into the
+// config — clients use it to skip refreshes while their cache is current.
 function genCloudJSON() {
   const { appConfig, categories, courses, coachAvatars, details } = loadData();
+  const stamped = { ...appConfig, _v: Date.now() };
   const _courses = courses.map(c => ({ ...c, image: toCloudPath(c.image) }));
   const _details = {};
   Object.keys(details).forEach(k => {
@@ -79,7 +81,7 @@ function genCloudJSON() {
     _details[k] = d;
   });
   return {
-    coursesJSON: JSON.stringify({ config: appConfig, categories, courses: _courses, coachAvatars }),
+    coursesJSON: JSON.stringify({ config: stamped, categories, courses: _courses, coachAvatars }),
     detailsJSON: JSON.stringify(_details)
   };
 }

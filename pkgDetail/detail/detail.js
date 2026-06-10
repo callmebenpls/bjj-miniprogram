@@ -1,5 +1,7 @@
 // Temp file URLs are valid ~2h; trust cached ones for 90 min
 const IMG_TTL = 90 * 60 * 1000;
+// Without a version match, trust cached detail data this long
+const DETAIL_TTL = 6 * 60 * 60 * 1000;
 const CACHE_PREFIX = 'detail_';
 const CACHE_INDEX = 'detail_cache_idx';
 const CACHE_MAX = 40;
@@ -27,6 +29,15 @@ Page({
     const cached = this.readCache(options.id);
     if (cached) {
       this.setData({ course: cached.course, config: cached.config, loading: false });
+      // If the cached data is still the current deploy version (or young
+      // enough), skip the cloud call — just re-sign expired image URLs.
+      const appVer = (getApp().globalData || {}).dataVersion;
+      const current = (cached.v && appVer && cached.v === appVer) ||
+                      (Date.now() - cached.t < DETAIL_TTL);
+      if (current) {
+        this.resolveCachedImages(options.id, cached);
+        return;
+      }
     } else {
       // First visit: seed header/cover from the list item the user tapped,
       // so something meaningful shows while the full detail loads
@@ -50,9 +61,34 @@ Page({
     try {
       const c = wx.getStorageSync(CACHE_PREFIX + id);
       if (!c || !c.course) return null;
-      if (Date.now() - c.t > IMG_TTL) this.stripImages(c.course);
+      if (Date.now() - (c.imgT || c.t) > IMG_TTL) this.stripImages(c.course);
       return c;
     } catch (e) { return null; }
+  },
+
+  // Cached data is current but its signed image URLs may have expired —
+  // re-sign just those (one storage op, no cloud function call)
+  async resolveCachedImages(id, cached) {
+    const course = cached.course;
+    const ids = [];
+    if (course._coverId && !course.image) ids.push(course._coverId);
+    ['blocks', 'blocksTop', 'blocksMid', 'blocksBottom'].forEach(k => {
+      (course[k] || []).forEach(b => { if (b._srcId && !b.src) ids.push(b._srcId); });
+    });
+    if (ids.length === 0) return;
+    try {
+      const res = await wx.cloud.getTempFileURL({ fileList: [...new Set(ids)] });
+      const map = {};
+      res.fileList.forEach(f => { map[f.fileID] = f.tempFileURL || ''; });
+      if (course._coverId && map[course._coverId]) course.image = map[course._coverId];
+      ['blocks', 'blocksTop', 'blocksMid', 'blocksBottom'].forEach(k => {
+        (course[k] || []).forEach(b => { if (b._srcId && map[b._srcId]) b.src = map[b._srcId]; });
+      });
+      this.setData({ course });
+      try {
+        wx.setStorageSync(CACHE_PREFIX + id, { ...cached, imgT: Date.now(), course });
+      } catch (e) { /* skip */ }
+    } catch (e) { /* placeholders stay */ }
   },
 
   stripImages(course) {
@@ -66,7 +102,9 @@ Page({
 
   writeCache(id, course, config) {
     try {
-      wx.setStorageSync(CACHE_PREFIX + id, { t: Date.now(), course, config });
+      wx.setStorageSync(CACHE_PREFIX + id, {
+        t: Date.now(), imgT: Date.now(), v: (config && config._v) || '', course, config
+      });
       let idx = wx.getStorageSync(CACHE_INDEX) || [];
       idx = idx.filter(x => x !== id);
       idx.push(id);

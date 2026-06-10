@@ -1,6 +1,9 @@
 const CACHE_KEY = 'home_cache_v1';
 // Temp file URLs are valid ~2h; trust cached ones for 90 min
 const IMG_TTL = 90 * 60 * 1000;
+// Skip the network refresh entirely while the cache is this fresh —
+// the cloud functions cache for 15 min anyway, so polling sooner is wasted
+const HOME_TTL = 10 * 60 * 1000;
 
 Page({
   data: {
@@ -45,9 +48,13 @@ Page({
       });
     } catch (e) { /* keep defaults */ }
 
-    // Cache-first: paint the last known data instantly, then refresh
+    // Cache-first: paint the last known data instantly; only hit the
+    // network when the cache has aged past HOME_TTL
     const cached = this.readCache();
-    if (cached) this.applyData(cached);
+    if (cached) {
+      this.applyData(cached);
+      if (Date.now() - cached.t < HOME_TTL) return; // fresh enough — zero calls
+    }
     this.loadData(!!cached);
   },
 
@@ -66,6 +73,8 @@ Page({
   },
 
   applyData({ config, categories, coaches, courses }) {
+    // expose the data version so the detail page can validate its caches
+    getApp().globalData.dataVersion = (config && config._v) || '';
     this.setData({
       config: config || {},
       categories,
@@ -94,6 +103,7 @@ Page({
       await this.resolveImages(courses, coaches);
 
       const payload = { config: config || {}, categories, coaches, courses };
+      this.purgeDetailsIfNewVersion(payload.config._v);
       this.applyData(payload);
       try { wx.setStorageSync(CACHE_KEY, { t: Date.now(), ...payload }); } catch (e) { /* storage full — skip */ }
     } catch (err) {
@@ -103,6 +113,19 @@ Page({
         this.setData({ loading: false });
       }
     }
+  },
+
+  // A new data deploy means cached course details may be stale — drop them
+  purgeDetailsIfNewVersion(newV) {
+    try {
+      const old = wx.getStorageSync(CACHE_KEY);
+      const oldV = old && old.config && old.config._v;
+      if (!newV || newV === oldV) return;
+      (wx.getStorageSync('detail_cache_idx') || []).forEach(id => {
+        wx.removeStorageSync('detail_' + id);
+      });
+      wx.removeStorageSync('detail_cache_idx');
+    } catch (e) { /* best effort */ }
   },
 
   // Precompute display fields WXML can't express (no method calls in bindings)

@@ -9,7 +9,7 @@ const CLOUD_BASE = `cloud://${ENV}.636c-${ENV}-1441813913`;
 
 let _cache = null;
 let _cacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 15 * 60 * 1000;
 
 function buildCoaches(courses, coachAvatars) {
   const avatars = coachAvatars || {};

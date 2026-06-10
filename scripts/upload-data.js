@@ -50,10 +50,13 @@ function toCloudPath(localPath) {
   const storage = app.storage;
 
   courses.forEach(c => { c.image = toCloudPath(c.image); });
-  Object.values(details).forEach(d => { d.image = toCloudPath(d.image); });
+  Object.values(details).forEach(d => {
+    d.image = toCloudPath(d.image);
+    (d.blocks || []).forEach(b => { if (b.type === 'image' && b.src) b.src = toCloudPath(b.src); });
+  });
 
-  // Upload courses.json
-  const coursesData = JSON.stringify({ config: appConfig, categories, courses, coachAvatars });
+  // Upload courses.json — _v stamp lets clients skip refreshes while current
+  const coursesData = JSON.stringify({ config: { ...appConfig, _v: Date.now() }, categories, courses, coachAvatars });
   const coursesPath = path.join(__dirname, '..', '.tmp-courses.json');
   fs.writeFileSync(coursesPath, coursesData);
   console.log(`Uploading data/courses.json (${(fs.statSync(coursesPath).size / 1024).toFixed(1)} KB, ${courses.length} courses)...`);
