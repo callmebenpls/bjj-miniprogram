@@ -316,7 +316,9 @@ async function editBlocks(id) {
       详情页正文下方会按顺序渲染这些板块。每个对象需要 <code>type</code> 字段，可选类型：
       <code>heading</code>(text,level) · <code>text</code>(text) · <code>image</code>(src,caption) ·
       <code>list</code>(items[],ordered) · <code>quote</code>(text,author) · <code>divider</code> ·
-      <code>button</code>(text,action:'copy',value) · <code>rich</code>(html)
+      <code>button</code>(text,action:'copy',value) · <code>rich</code>(html)<br>
+      可选 <code>position</code> 字段控制板块区域："top"＝课程介绍上方 · 不填＝介绍下方（默认）·
+      "bottom"＝章节列表下方。同一区域内按数组顺序排列。
     </div>
     <div style="margin-bottom:8px">
       ${Object.keys(BLOCK_TEMPLATES).map(t => `<button class="btn btn-gray btn-sm" onclick="insertBlockTemplate('${t}')">+ ${t}</button>`).join(' ')}

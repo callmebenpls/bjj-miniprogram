@@ -58,6 +58,12 @@ Page({
         } catch (e) { /* leave cloud:// paths as-is */ }
       }
 
+      // Slot blocks by optional position field: top (above description),
+      // bottom (below chapters), default (between description and share)
+      course.blocksTop = blocks.filter(b => b.position === 'top');
+      course.blocksMid = blocks.filter(b => b.position !== 'top' && b.position !== 'bottom');
+      course.blocksBottom = blocks.filter(b => b.position === 'bottom');
+
       this.setData({ course, config, loading: false });
     } catch (err) {
       console.error('Load detail failed:', err);
