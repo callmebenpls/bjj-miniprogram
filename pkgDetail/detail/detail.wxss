@@ -4,8 +4,7 @@
   padding-right: 16px;
 }
 .back-bar {
-  padding: 44px 20px 6px;
-  padding-top: calc(env(safe-area-inset-top) + 8px);
+  padding: 48px 20px 6px;  /* top overridden inline from measured capsule rect */
   font-size: 14px;
   color: #888;
 }

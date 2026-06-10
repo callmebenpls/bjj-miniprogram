@@ -1,6 +1,6 @@
-<!-- ===== HEADER ===== -->
-<view class="status-bar" style="background:{{config.home.bg || '#ffffff'}}">
-  <view class="app-title">
+<!-- ===== HEADER (aligned with the capsule button, measured in JS) ===== -->
+<view class="status-bar" style="background:{{config.home.bg || '#ffffff'}};padding-top:{{navTop}}px">
+  <view class="app-title" style="height:{{navHeight}}px">
     <text class="app-title-text">{{config.home.title || '巴柔之家'}}</text>
     <view class="app-title-mark" style="background:{{config.home.accent || '#c0392b'}}"></view>
   </view>
@@ -38,6 +38,7 @@
   <block wx:if="{{config.home.showCoachAvatars !== false}}">
     <view class="section-label">教练</view>
     <scroll-view class="coach-scroll" scroll-x="true" enhanced show-scrollbar="{{false}}">
+      <view class="coach-row">
       <view class="coach-item {{curCoach === '' ? 'active' : ''}}" data-name="" bindtap="setCoach">
         <view class="coach-avatar all-icon">全</view>
         <view class="coach-name-sm">全部</view>
@@ -50,6 +51,7 @@
         </view>
         <view class="coach-name-sm">{{item.name}}</view>
         <view class="coach-count">{{item.count}}门</view>
+      </view>
       </view>
     </scroll-view>
   </block>

@@ -11,6 +11,8 @@ Page({
     curBadge: '',
     query: '',
     searchFocus: false,
+    navTop: 48,
+    navHeight: 32,
     loading: true
   },
 
@@ -28,6 +30,16 @@ Page({
   },
 
   onLoad() {
+    // Align the header with the capsule button — env(safe-area-inset-top)
+    // is unreliable in mini programs, so measure instead.
+    try {
+      const menu = wx.getMenuButtonBoundingClientRect();
+      const win = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      this.setData({
+        navTop: (menu && menu.top) || (win.statusBarHeight || 24) + 4,
+        navHeight: (menu && menu.height) || 32
+      });
+    } catch (e) { /* keep defaults */ }
     this.loadData();
   },
 

@@ -2,10 +2,16 @@ Page({
   data: {
     course: null,
     config: {},
+    navTop: 48,
     loading: true
   },
 
   onLoad(options) {
+    try {
+      const menu = wx.getMenuButtonBoundingClientRect();
+      const win = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      this.setData({ navTop: (menu && menu.top) || (win.statusBarHeight || 24) + 4 });
+    } catch (e) { /* keep default */ }
     if (!options.id) {
       this.setData({ loading: false });
       return;

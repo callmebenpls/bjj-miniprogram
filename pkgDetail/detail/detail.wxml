@@ -29,7 +29,7 @@
 </template>
 
 <view class="top-bar">
-  <view class="back-bar" bindtap="goBack">← 返回</view>
+  <view class="back-bar" style="padding-top:{{navTop}}px" bindtap="goBack">← 返回</view>
 </view>
 
 <!-- Top accent bar — dynamic color -->
