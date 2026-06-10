@@ -82,6 +82,13 @@
   width: 260px;
   display: inline-block;
 }
+.cover-preload {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
 /* Section */
 .section-wrap {
   padding: 24px 20px 16px;

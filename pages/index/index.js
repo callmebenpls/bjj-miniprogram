@@ -1,3 +1,5 @@
+const imgUrls = require('../../img-urls.js');
+
 const CACHE_KEY = 'home_cache_v1';
 // Temp file URLs are valid ~2h; trust cached ones for 90 min
 const IMG_TTL = 90 * 60 * 1000;
@@ -148,23 +150,9 @@ Page({
     coaches.forEach(c => { if (c.avatar && c.avatar.startsWith('cloud://')) cloudFileIDs.push(c.avatar); });
     if (!cloudFileIDs.length) return;
 
-    const BATCH = 50;
-    const batches = [];
-    for (let i = 0; i < cloudFileIDs.length; i += BATCH) {
-      batches.push(cloudFileIDs.slice(i, i + BATCH));
-    }
-    const resolved = {};
-    // resolve all batches in parallel — was serial, ~4x slower
-    const results = await Promise.all(batches.map(b =>
-      wx.cloud.getTempFileURL({ fileList: b }).catch(e => {
-        console.warn('Image batch failed:', e);
-        return { fileList: [] };
-      })
-    ));
-    results.forEach(res => (res.fileList || []).forEach(f => {
-      if (f.tempFileURL) resolved[f.fileID] = f.tempFileURL;
-    }));
-
+    // shared per-file URL cache: same URL for its whole validity window,
+    // so refreshes don't change src (no re-download, no flicker)
+    const resolved = await imgUrls.resolve(cloudFileIDs);
     courses.forEach(c => { if (c.image && c.image.startsWith('cloud://')) c.image = resolved[c.image] || ''; });
     coaches.forEach(c => { if (c.avatar && c.avatar.startsWith('cloud://')) c.avatar = resolved[c.avatar] || ''; });
   },

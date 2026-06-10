@@ -1,3 +1,5 @@
+const imgUrls = require('../../img-urls.js');
+
 // Temp file URLs are valid ~2h; trust cached ones for 90 min
 const IMG_TTL = 90 * 60 * 1000;
 // Without a version match, trust cached detail data this long
@@ -11,6 +13,7 @@ Page({
     course: null,
     config: {},
     navTop: 48,
+    pendingCover: '',
     loading: true
   },
 
@@ -67,7 +70,7 @@ Page({
   },
 
   // Cached data is current but its signed image URLs may have expired —
-  // re-sign just those (one storage op, no cloud function call)
+  // re-sign just those (no cloud function call)
   async resolveCachedImages(id, cached) {
     const course = cached.course;
     const ids = [];
@@ -77,9 +80,7 @@ Page({
     });
     if (ids.length === 0) return;
     try {
-      const res = await wx.cloud.getTempFileURL({ fileList: [...new Set(ids)] });
-      const map = {};
-      res.fileList.forEach(f => { map[f.fileID] = f.tempFileURL || ''; });
+      const map = await imgUrls.resolve(ids);
       if (course._coverId && map[course._coverId]) course.image = map[course._coverId];
       ['blocks', 'blocksTop', 'blocksMid', 'blocksBottom'].forEach(k => {
         (course[k] || []).forEach(b => { if (b._srcId && map[b._srcId]) b.src = map[b._srcId]; });
@@ -166,12 +167,22 @@ Page({
 
       if (cloudIds.length > 0) {
         try {
-          const imgRes = await wx.cloud.getTempFileURL({ fileList: cloudIds });
-          const map = {};
-          imgRes.fileList.forEach(f => { map[f.fileID] = f.tempFileURL || ''; });
-          if (course._coverId) course.image = map[course._coverId] || course.image;
+          const map = await imgUrls.resolve(cloudIds);
           blocks.forEach(b => { if (b._srcId) b.src = map[b._srcId] || ''; });
-          this.setData({ course });
+          const displayed = course.image;
+          const finalCover = course._coverId ? (map[course._coverId] || '') : displayed;
+          if (!displayed || displayed === finalCover) {
+            // nothing on screen (or same URL) — set directly
+            course.image = finalCover;
+            this.setData({ course });
+          } else {
+            // an image (seeded thumb / older URL) is visible — preload the
+            // real cover off-screen and swap only once it has loaded
+            this.setData({ course, pendingCover: finalCover });
+          }
+          // cache always stores the final cover, never the seeded thumb
+          this.writeCache(id, { ...course, image: finalCover }, config);
+          return;
         } catch (e) { /* placeholders stay */ }
       }
       this.writeCache(id, course, config);
@@ -186,6 +197,13 @@ Page({
 
   goBack() {
     wx.navigateBack();
+  },
+
+  // The off-screen preloader finished — swap the cover with no blank frame
+  onCoverLoaded() {
+    const url = this.data.pendingCover;
+    if (!url) return;
+    this.setData({ 'course.image': url, pendingCover: '' });
   },
 
   onBlockButton(e) {

@@ -59,6 +59,8 @@
 <view wx:if="{{course.image && config.detail.showCover !== false}}" class="cover-wrap">
   <image src="{{course.image}}" mode="widthFix" class="cover-img" />
 </view>
+<!-- off-screen preloader: swap the visible cover only after this loads -->
+<image wx:if="{{pendingCover}}" src="{{pendingCover}}" class="cover-preload" bindload="onCoverLoaded" binderror="onCoverLoaded" />
 
 <!-- ===== CONTENT BLOCKS (position: "top") ===== -->
 <template is="contentBlocks" data="{{blocks: course.blocksTop, config}}"/>
