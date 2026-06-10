@@ -35,7 +35,8 @@ function loadData() {
 
 // Save courses.js (reconstruct the JS file)
 function saveCoursesJS(data) {
-  const { appConfig, categories, courses, coachAvatars } = data;
+  const { appConfig, courses, coachAvatars } = data;
+  const categories = [...new Set(data.categories)]; // guard against duplicate entries
   const content = `const appConfig = ${JSON.stringify(appConfig || {})};\n` +
     `const categories = ${JSON.stringify(categories)};\n` +
     `const coachAvatars = ${JSON.stringify(coachAvatars)};\n` +
@@ -161,11 +162,19 @@ function handleAPI(req, res) {
           courses.forEach(c => { if (c.cats) c.cats = c.cats.filter(x => x !== name); });
         } else if (action === 'rename' && newName) {
           const idx = categories.indexOf(name);
-          if (idx >= 0) categories[idx] = newName;
+          if (categories.includes(newName)) {
+            // target already exists — merge instead of creating a duplicate
+            if (idx >= 0) categories.splice(idx, 1);
+          } else if (idx >= 0) {
+            categories[idx] = newName;
+          }
           courses.forEach(c => {
             if (c.cats) {
               const ci = c.cats.indexOf(name);
-              if (ci >= 0) c.cats[ci] = newName;
+              if (ci >= 0) {
+                if (c.cats.includes(newName)) c.cats.splice(ci, 1);
+                else c.cats[ci] = newName;
+              }
             }
           });
         }
