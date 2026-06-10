@@ -43,6 +43,21 @@ Page({
         } catch (e) { course.image = ''; }
       }
 
+      const blocks = course.blocks || [];
+      const cloudImages = blocks
+        .filter(b => b.type === 'image' && b.src && b.src.startsWith('cloud://'))
+        .map(b => b.src);
+      if (cloudImages.length > 0) {
+        try {
+          const imgRes = await wx.cloud.getTempFileURL({ fileList: cloudImages });
+          const map = {};
+          imgRes.fileList.forEach(f => { map[f.fileID] = f.tempFileURL || ''; });
+          blocks.forEach(b => {
+            if (b.type === 'image' && map[b.src] !== undefined) b.src = map[b.src];
+          });
+        } catch (e) { /* leave cloud:// paths as-is */ }
+      }
+
       this.setData({ course, config, loading: false });
     } catch (err) {
       console.error('Load detail failed:', err);
@@ -53,6 +68,16 @@ Page({
 
   goBack() {
     wx.navigateBack();
+  },
+
+  onBlockButton(e) {
+    const { action, value } = e.currentTarget.dataset;
+    if (action === 'copy' && value) {
+      wx.setClipboardData({
+        data: value,
+        success: () => wx.showToast({ title: '已复制到剪贴板', icon: 'none' })
+      });
+    }
   },
 
   onShareAppMessage() {

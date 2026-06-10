@@ -36,6 +36,36 @@
   <view class="desc-text">{{course.desc}}</view>
 </view>
 
+<!-- ===== CONTENT BLOCKS ===== -->
+<block wx:if="{{course.blocks && course.blocks.length > 0}}">
+  <view wx:for="{{course.blocks}}" wx:for-item="blk" wx:key="index" class="content-block">
+    <view wx:if="{{blk.type === 'heading'}}" class="{{blk.level === 1 ? 'block-heading-1' : 'block-heading-2'}}" style="border-bottom-color:{{config.detail.accent || '#c0392b'}}">{{blk.text}}</view>
+    <view wx:elif="{{blk.type === 'text'}}" class="block-text">{{blk.text}}</view>
+    <view wx:elif="{{blk.type === 'image'}}" class="block-image-wrap">
+      <image src="{{blk.src}}" mode="widthFix" class="block-image" />
+      <view wx:if="{{blk.caption}}" class="block-caption">{{blk.caption}}</view>
+    </view>
+    <view wx:elif="{{blk.type === 'list'}}" class="block-list">
+      <view wx:for="{{blk.items}}" wx:for-item="li" wx:key="index" class="block-list-item">
+        <text class="block-list-bullet" style="color:{{config.detail.accent || '#c0392b'}}">{{blk.ordered ? (index+1)+'.' : '•'}}</text>
+        <text class="block-list-text">{{li}}</text>
+      </view>
+    </view>
+    <view wx:elif="{{blk.type === 'quote'}}" class="block-quote" style="border-left-color:{{config.detail.accent || '#c0392b'}}">
+      <view class="block-quote-text">{{blk.text}}</view>
+      <view wx:if="{{blk.author}}" class="block-quote-author">— {{blk.author}}</view>
+    </view>
+    <view wx:elif="{{blk.type === 'divider'}}" class="divider-wrap">
+      <view class="divider-dash"></view>
+      <view class="divider-star">✦ ✦ ✦</view>
+    </view>
+    <view wx:elif="{{blk.type === 'button'}}" class="block-button-wrap">
+      <button class="block-button" style="background:{{config.detail.shareColor || '#c0392b'}}" data-action="{{blk.action}}" data-value="{{blk.value}}" bindtap="onBlockButton" hover-class="big-share-hover">{{blk.text}}</button>
+    </view>
+    <rich-text wx:elif="{{blk.type === 'rich'}}" nodes="{{blk.html}}" class="block-rich"></rich-text>
+  </view>
+</block>
+
 <!-- ===== DIVIDER ===== -->
 <view class="divider-wrap">
   <view class="divider-dash"></view>

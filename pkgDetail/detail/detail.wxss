@@ -99,6 +99,100 @@
   line-height: 1.8;
   color: #333;
 }
+/* Content blocks */
+.content-block {
+  padding: 0 20px;
+  margin-bottom: 18px;
+}
+.block-heading-1 {
+  font-size: 19px;
+  font-weight: bold;
+  color: #1a1a2e;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #c0392b;
+}
+.block-heading-2 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+.block-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #333;
+  white-space: pre-wrap;
+}
+.block-image-wrap {
+  text-align: center;
+}
+.block-image {
+  max-width: 100%;
+  width: 100%;
+  border-radius: 8px;
+}
+.block-caption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+.block-list-item {
+  display: flex;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #333;
+  margin-bottom: 4px;
+}
+.block-list-bullet {
+  flex-shrink: 0;
+  width: 24px;
+  font-weight: bold;
+}
+.block-list-text {
+  flex: 1;
+  white-space: pre-wrap;
+}
+.block-quote {
+  border-left: 3px solid #c0392b;
+  padding: 4px 0 4px 14px;
+}
+.block-quote-text {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #666;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+.block-quote-author {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #999;
+  text-align: right;
+}
+.block-button-wrap {
+  text-align: center;
+}
+.block-button {
+  display: inline-block;
+  width: 220px;
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background: #c0392b;
+  border-radius: 12px;
+  border: none;
+  line-height: 1.5;
+}
+.block-button::after {
+  border: none;
+}
+.block-rich {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #333;
+}
 /* Divider with stars */
 .divider-wrap {
   padding: 0 20px;

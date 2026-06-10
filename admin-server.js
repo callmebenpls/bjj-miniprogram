@@ -70,7 +70,12 @@ function genCloudJSON() {
   const _courses = courses.map(c => ({ ...c, image: toCloudPath(c.image) }));
   const _details = {};
   Object.keys(details).forEach(k => {
-    _details[k] = { ...details[k], image: toCloudPath(details[k].image) };
+    const d = { ...details[k], image: toCloudPath(details[k].image) };
+    if (Array.isArray(d.blocks)) {
+      d.blocks = d.blocks.map(b =>
+        b && b.type === 'image' && b.src ? { ...b, src: toCloudPath(b.src) } : b);
+    }
+    _details[k] = d;
   });
   return {
     coursesJSON: JSON.stringify({ config: appConfig, categories, courses: _courses, coachAvatars }),

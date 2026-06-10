@@ -49,6 +49,13 @@ Browser UI to edit courses, categories, coaches, badges, and app styling.
 Saves to the local data files and deploys straight to Cloud Storage
 (credentials read from `.env` — never commit that file).
 
+- **Batch operations**: check courses in the list (or 全选结果 on a search),
+  then add/remove a category, coach, or badge across all of them at once.
+- **Content blocks**: each course's 内容板块 editor adds extra detail-page
+  content (headings, text, images, lists, quotes, buttons, raw HTML) that
+  renders between the description and the chapter list — data-driven, so new
+  content needs no app release, just a data deploy.
+
 ### Project Structure
 
 ```

@@ -38,6 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;
 .course-row .tags{margin-top:2px}
 .search-bar{padding:8px 0}
 .search-bar input{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+.batch-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0 10px;border-bottom:1px solid #f0f0f0}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center}
 .modal{background:#fff;border-radius:12px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto;padding:24px}
 .modal h2{font-size:16px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #c0392b}
@@ -117,8 +118,27 @@ function render() {
 }
 
 // ============ Courses ============
+const _selected = new Set();   // course ids selected for batch operations
+let _lastFiltered = [];        // result of the current search filter
+
 function renderCourses() {
   let h = `<div class="card"><div class="search-bar"><input placeholder="搜索课程（标题/讲师/分类）..." id="search" oninput="renderCourseList()"></div>`;
+  h += `<div class="batch-bar">
+    <button class="btn btn-gray btn-sm" onclick="selectFiltered(true)">全选结果</button>
+    <button class="btn btn-gray btn-sm" onclick="selectFiltered(false)">清空选择</button>
+    <span id="selCount" class="count-badge">已选 0</span>
+    <select id="batchAction" onchange="updateBatchValues()" style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+      <option value="">批量操作…</option>
+      <option value="addCat">＋ 添加分类</option>
+      <option value="rmCat">－ 移除分类</option>
+      <option value="addCoach">＋ 添加讲师</option>
+      <option value="rmCoach">－ 移除讲师</option>
+      <option value="addBadge">＋ 添加标签</option>
+      <option value="rmBadge">－ 移除标签</option>
+    </select>
+    <select id="batchValue" style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:12px;display:none"></select>
+    <button class="btn btn-red btn-sm" onclick="applyBatch()">应用</button>
+  </div>`;
   h += `<div id="courseList"></div></div>`;
   document.getElementById('content').innerHTML = h;
   renderCourseList();
@@ -127,17 +147,20 @@ function renderCourses() {
 function renderCourseList() {
   const q = (document.getElementById('search')?.value || '').toLowerCase();
   let filtered = state.courses;
-  if (q) filtered = filtered.filter(c => 
-    c.titleCn.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || 
-    (c.instructors||[]).join(' ').toLowerCase().includes(q) || 
+  if (q) filtered = filtered.filter(c =>
+    c.titleCn.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) ||
+    (c.instructors||[]).join(' ').toLowerCase().includes(q) ||
     (c.cats||[]).join(' ').includes(q)
   );
-  
+  _lastFiltered = filtered;
+
   let h = filtered.slice(0, 200).map((c, i) => {
     const realIdx = state.courses.indexOf(c);
     const cats = (c.cats||[]).map(cat => `<span class="tag tag-cat">${esc(cat)}</span>`).join('');
     const coaches = (c.instructors||[]).map(ins => `<span class="tag tag-coach">${esc(ins)}</span>`).join('');
     return `<div class="course-row" onclick="editCourse(${realIdx})">
+      <input type="checkbox" ${_selected.has(c.id)?'checked':''}
+        onclick="event.stopPropagation();toggleSel('${esc(c.id)}', this.checked)">
       <div class="meta">
         <div class="title">${esc(c.titleCn)}</div>
         <div class="sub">${esc(c.title)}</div>
@@ -147,6 +170,61 @@ function renderCourseList() {
     </div>`;
   }).join('');
   document.getElementById('courseList').innerHTML = h || '<div style="padding:20px;text-align:center;color:#999">无匹配结果</div>';
+  updateSelCount();
+}
+
+function toggleSel(id, on) {
+  on ? _selected.add(id) : _selected.delete(id);
+  updateSelCount();
+}
+
+function selectFiltered(on) {
+  if (on) _lastFiltered.forEach(c => _selected.add(c.id));
+  else _selected.clear();
+  renderCourseList();
+}
+
+function updateSelCount() {
+  const el = document.getElementById('selCount');
+  if (el) el.textContent = `已选 ${_selected.size}`;
+}
+
+function updateBatchValues() {
+  const action = document.getElementById('batchAction').value;
+  const sel = document.getElementById('batchValue');
+  let opts = [];
+  if (action === 'addCat' || action === 'rmCat') {
+    opts = state.categories.map(c => [c, c]);
+  } else if (action === 'addCoach' || action === 'rmCoach') {
+    opts = Object.keys(state.coachAvatars).map(n => [n, n]);
+  } else if (action === 'addBadge' || action === 'rmBadge') {
+    opts = ((state.appConfig.home && state.appConfig.home.badges) || []).map(b => [b.id, `${b.icon} ${b.text}`]);
+  }
+  sel.innerHTML = opts.map(([v, label]) => `<option value="${esc(v)}">${esc(label)}</option>`).join('');
+  sel.style.display = opts.length ? '' : 'none';
+}
+
+async function applyBatch() {
+  const action = document.getElementById('batchAction').value;
+  const value = document.getElementById('batchValue').value;
+  if (!action) return toast('请先选择批量操作');
+  if (!value) return toast('没有可用的选项');
+  if (_selected.size === 0) return toast('请先勾选课程');
+
+  const field = action.endsWith('Cat') ? 'cats' : action.endsWith('Coach') ? 'instructors' : 'badges';
+  const adding = action.startsWith('add');
+  let changed = 0;
+  state.courses.forEach(c => {
+    if (!_selected.has(c.id)) return;
+    const arr = c[field] || (c[field] = []);
+    if (adding && !arr.includes(value)) { arr.push(value); changed++; }
+    if (!adding && arr.includes(value)) { c[field] = arr.filter(v => v !== value); changed++; }
+  });
+  if (changed === 0) return toast('所选课程无需修改');
+
+  await post('/api/data/courses/save', { appConfig: state.appConfig, categories: state.categories, courses: state.courses, coachAvatars: state.coachAvatars });
+  toast(`已更新 ${changed} 门课 ✓`);
+  renderCourseList();
 }
 
 function editCourse(i) {
@@ -182,6 +260,7 @@ function editCourse(i) {
     <div class="row"><label>封面图</label><input id="e-img" value="${c.image.replace(/^.*\//,'')}"></div>
     <div style="margin-top:16px;text-align:right">
       <button class="btn btn-gray btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-gray btn-sm" onclick="editBlocks('${esc(c.id)}')">内容板块</button>
       <button class="btn btn-red btn-sm" onclick="saveCourse(${i})">保存</button>
     </div>
   </div></div>`;
@@ -210,6 +289,68 @@ async function saveCourse(i) {
 
 function closeModal() {
   document.querySelector('.modal-overlay')?.remove();
+}
+
+// ============ Content blocks (detail page extras) ============
+const BLOCK_TEMPLATES = {
+  heading: { type: 'heading', text: '小标题', level: 2 },
+  text: { type: 'text', text: '一段说明文字。' },
+  image: { type: 'image', src: '/images/extra/example.jpg', caption: '' },
+  list: { type: 'list', ordered: false, items: ['要点一', '要点二'] },
+  quote: { type: 'quote', text: '一句引用。', author: '' },
+  divider: { type: 'divider' },
+  button: { type: 'button', text: '复制官网链接', action: 'copy', value: 'https://example.com' },
+  rich: { type: 'rich', html: '<p>支持基础 <b>HTML</b></p>' }
+};
+
+async function editBlocks(id) {
+  closeModal();
+  toast('加载中...');
+  const detail = await (await fetch(`/api/data/details/${id}`)).json();
+  const blocks = detail.blocks || [];
+
+  let h = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:700px">
+    <button class="close" onclick="closeModal()">×</button>
+    <h2>内容板块 — ${esc(detail.titleCn || id)}</h2>
+    <div style="font-size:12px;color:#999;margin-bottom:8px">
+      详情页正文下方会按顺序渲染这些板块。每个对象需要 <code>type</code> 字段，可选类型：
+      <code>heading</code>(text,level) · <code>text</code>(text) · <code>image</code>(src,caption) ·
+      <code>list</code>(items[],ordered) · <code>quote</code>(text,author) · <code>divider</code> ·
+      <code>button</code>(text,action:'copy',value) · <code>rich</code>(html)
+    </div>
+    <div style="margin-bottom:8px">
+      ${Object.keys(BLOCK_TEMPLATES).map(t => `<button class="btn btn-gray btn-sm" onclick="insertBlockTemplate('${t}')">+ ${t}</button>`).join(' ')}
+    </div>
+    <textarea id="e-blocks" style="width:100%;height:320px;font-family:monospace;font-size:12px;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:4px">${esc(JSON.stringify(blocks, null, 2))}</textarea>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn btn-gray btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-red btn-sm" onclick="saveBlocks('${esc(id)}')">保存</button>
+    </div>
+  </div></div>`;
+  const div = document.createElement('div');
+  div.innerHTML = h;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function insertBlockTemplate(type) {
+  const ta = document.getElementById('e-blocks');
+  let arr;
+  try { arr = JSON.parse(ta.value || '[]'); } catch (e) { return alert('当前 JSON 有误，请先修正再插入模板'); }
+  arr.push(JSON.parse(JSON.stringify(BLOCK_TEMPLATES[type])));
+  ta.value = JSON.stringify(arr, null, 2);
+}
+
+async function saveBlocks(id) {
+  let blocks;
+  try {
+    blocks = JSON.parse(document.getElementById('e-blocks').value || '[]');
+  } catch (e) {
+    return alert('JSON 格式错误：' + e.message);
+  }
+  if (!Array.isArray(blocks)) return alert('内容必须是一个数组');
+  await post('/api/save/details', { id, data: { blocks } });
+  closeModal();
+  toast('已保存 ✓');
 }
 
 // ============ Categories ============
