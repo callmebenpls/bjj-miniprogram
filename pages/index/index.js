@@ -10,7 +10,16 @@ Page({
     curCoach: '',
     curBadge: '',
     query: '',
+    searchFocus: false,
     loading: true
+  },
+
+  onSearchFocus() {
+    this.setData({ searchFocus: true });
+  },
+
+  onSearchBlur() {
+    this.setData({ searchFocus: false });
   },
 
   onShareAppMessage() {
