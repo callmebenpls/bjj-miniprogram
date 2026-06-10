@@ -27,7 +27,7 @@
     </view>
     <view wx:for="{{coachList}}" wx:key="index" class="coach-item {{curCoach === item.name ? 'active' : ''}}" data-name="{{item.name}}" bindtap="setCoach">
       <view class="coach-avatar">
-        <image wx:if="{{item.avatar}}" class="coach-avatar-img" src="{{item.avatar}}" mode="aspectFill" />
+        <image wx:if="{{item.avatar}}" class="coach-avatar-img" src="{{item.avatar}}" mode="aspectFill" lazy-load="true" />
         <text wx:else>{{item.initial}}</text>
       </view>
       <view class="coach-name-sm">{{item.name}}</view>
@@ -39,7 +39,7 @@
   <view class="section-label">课程</view>
   <view wx:if="{{filteredCourses.length === 0}}" class="empty-state">没有相关课程</view>
   <view wx:for="{{filteredCourses}}" wx:key="id" class="course-card" data-id="{{item.id}}" bindtap="openDetail">
-    <image wx:if="{{item.image}}" class="course-thumb" src="{{item.image}}" mode="aspectFill" />
+    <image wx:if="{{item.image}}" class="course-thumb" src="{{item.image}}" mode="aspectFill" lazy-load="true" />
     <view wx:else class="course-thumb" style="background:#f0f0f0;"></view>
     <view class="course-info">
       <view class="course-title">{{item.titleCn || item.title}}</view>
